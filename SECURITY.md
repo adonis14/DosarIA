@@ -242,6 +242,19 @@ never shown to that tenant.
   publisher is the shadcn maintainer account, and 0.5.2 carries an SLSA
   provenance attestation. Run `npm audit` and review new transitive
   dependencies on every update.
+- **Dev-only advisory (open)**: `npm audit` reports 4 *moderate* findings, all in
+  one chain: `shadcn` (CLI) → `ts-morph` → `@ts-morph/common` → `minimatch`
+  10.x (GHSA-g3hv-75wg-m249, a ReDoS via glob patterns, fixed in ≥ 11.0.1).
+  - It is reachable only when a developer runs the shadcn CLI. `shadcn` is a
+    devDependency, and `npm audit --omit=dev` reports **0** vulnerabilities.
+  - npm's suggested fix is a breaking *downgrade* to shadcn 1.0.0 and was not
+    applied. A cross-major `overrides` entry was also not applied, because it
+    could break the CLI.
+  - Re-check when shadcn updates ts-morph.
+- **Snapshot baseline ordering** uses the database insertion time
+  (`created_at`), never the provider-supplied `fetched_at`. Provider timestamps
+  are untrusted and may be equal or skewed; this was found and fixed during
+  verification.
 - **No penetration test** has been performed.
 
 ## 9. Go-live checklist before real client data
