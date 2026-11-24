@@ -46,8 +46,14 @@ set search_path = ''
 as $$
 begin
   if tg_op = 'INSERT' then
-    insert into public.profiles (id, email)
-    values (new.id, lower(coalesce(new.email, new.id::text || '@invalid.local')))
+    -- full_name from sign-up metadata is a display name only; it is never
+    -- used for authorization (roles live in organization_memberships).
+    insert into public.profiles (id, email, full_name)
+    values (
+      new.id,
+      lower(coalesce(new.email, new.id::text || '@invalid.local')),
+      nullif(left(btrim(coalesce(new.raw_user_meta_data ->> 'full_name', '')), 120), '')
+    )
     on conflict (id) do nothing;
   elsif tg_op = 'UPDATE' and new.email is distinct from old.email and new.email is not null then
     update public.profiles set email = lower(new.email) where id = new.id;
@@ -102,6 +108,20 @@ declare
   v_privileged boolean := private.is_privileged_role();
   v_role public.membership_role;
 begin
+  -- Referential actions (ON DELETE SET NULL when a user/membership is
+  -- deleted) are system-initiated by the FK definitions themselves.
+  if tg_op = 'UPDATE' and pg_trigger_depth() > 1 then
+    return new;
+  end if;
+
+  -- BEFORE triggers run before RLS WITH CHECK: reject inserts into an
+  -- organization the caller does not belong to as an authorization failure
+  -- (42501) before any other validation can produce a different signal.
+  if tg_op = 'INSERT' and not v_privileged
+     and new.organization_id not in (select private.member_org_ids()) then
+    raise exception 'not a member of the target organization' using errcode = '42501';
+  end if;
+
   if tg_op = 'INSERT' then
     if not v_privileged then
       -- System-managed fields cannot be supplied by users.
@@ -229,8 +249,8 @@ security invoker
 set search_path = ''
 as $$
 begin
-  if private.is_privileged_role() then
-    return new;
+  if private.is_privileged_role() or (tg_op = 'UPDATE' and pg_trigger_depth() > 1) then
+    return new;  -- trusted roles, or FK referential actions (accepted_by → NULL)
   end if;
 
   if tg_op = 'INSERT' then
@@ -293,7 +313,11 @@ begin
     return new;
   end if;
 
-  -- UPDATE
+  -- UPDATE caused by an FK referential action (e.g. confirmed_by → NULL on user deletion).
+  if pg_trigger_depth() > 1 then
+    return new;
+  end if;
+
   if new.origin is distinct from old.origin
      or new.source_event_id is distinct from old.source_event_id
      or new.created_by is distinct from old.created_by
@@ -328,7 +352,8 @@ begin
     end if;
 
     if new.status = 'confirmed' and old.status <> 'completed' then
-      if v_uid is null or private.active_role(new.organization_id) not in ('admin', 'lawyer') then
+      if v_uid is null
+         or coalesce(private.active_role(new.organization_id)::text, '') not in ('admin', 'lawyer') then
         raise exception 'only an authorized lawyer can confirm a deadline' using errcode = '42501';
       end if;
       new.confirmed_by := v_uid;

@@ -206,7 +206,8 @@ create table public.case_snapshots (
   constraint case_snapshots_content_hash_format check (content_hash ~ '^[0-9a-f]{64}$'),
   constraint case_snapshots_data_size check (pg_column_size(data) <= 262144)
 );
-create index case_snapshots_case_fetched_idx on public.case_snapshots (case_id, fetched_at desc);
+-- Baseline lookup: latest COMPLETE snapshot by insertion order (provider timestamps are untrusted).
+create index case_snapshots_case_created_idx on public.case_snapshots (case_id, completeness, created_at desc);
 create index case_snapshots_org_idx on public.case_snapshots (organization_id);
 
 -- ---------------------------------------------------------------------------

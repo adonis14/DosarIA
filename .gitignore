@@ -39,3 +39,15 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+!.env.example
+
+# test artefacts
+/playwright-report
+/test-results
+/blob-report
+tests/e2e/.world.json
+
+# supabase local state / keys
+supabase/.temp
+supabase/.branches
+supabase/signing_keys.json

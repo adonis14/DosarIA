@@ -206,6 +206,21 @@ revoke all on table
   public.audit_logs
 from anon, authenticated;
 
+-- service_role (trusted server process only; bypasses RLS). Granted explicitly so
+-- behaviour does not depend on the project's auto-expose default.
+grant select, insert, update, delete on table
+  public.profiles,
+  public.organizations,
+  public.organization_memberships,
+  public.organization_invitations,
+  public.cases,
+  public.case_snapshots,
+  public.case_events,
+  public.deadline_reminders,
+  public.monitoring_runs
+to service_role;
+grant select, insert on public.audit_logs to service_role;
+
 -- profiles: read (RLS-filtered), update own display name only.
 grant select on public.profiles to authenticated;
 grant update (full_name) on public.profiles to authenticated;
@@ -249,7 +264,7 @@ grant delete on public.deadline_reminders to authenticated;
 -- audit logs: admins read their org's history. Nobody but the table owner may
 -- UPDATE/DELETE — not even service_role.
 grant select on public.audit_logs to authenticated;
-revoke update, delete, truncate on public.audit_logs from service_role;
+revoke update, delete, truncate, references, trigger on public.audit_logs from service_role;
 
 -- ---------------------------------------------------------------------------
 -- Enable Row Level Security on every table (no policy = no access).

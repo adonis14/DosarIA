@@ -1,0 +1,3 @@
+-- Intentionally empty.
+-- Demo users and synthetic data are created by `npm run seed` (scripts/seed.ts),
+-- which uses the Supabase Auth admin API instead of writing to auth.users directly.
