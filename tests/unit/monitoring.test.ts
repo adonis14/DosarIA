@@ -177,15 +177,14 @@ describe("PortalJustSoapProvider (inactive)", () => {
     expect(r).toMatchObject({ kind: "error", errorCode: "insecure_transport_refused" });
   });
 
-  it("stays disabled even when configured with HTTPS", async () => {
-    for (const approved of [false, true]) {
-      const p = new PortalJustSoapProvider({
-        endpoint: "https://portalquery.just.ro/query.asmx",
-        integrationApproved: approved,
-        minPollingIntervalMinutes: 240,
-        timeoutMs: 1000,
-      });
-      expect(await p.fetchCase(query(0))).toMatchObject({ kind: "error", errorCode: "provider_disabled" });
-    }
+  it("stays disabled over HTTPS until integration is approved", async () => {
+    // (Approved behaviour is covered with a fake transport in tests/unit/portal-just.test.ts.)
+    const p = new PortalJustSoapProvider({
+      endpoint: "https://portalquery.just.ro/query.asmx",
+      integrationApproved: false,
+      minPollingIntervalMinutes: 240,
+      timeoutMs: 1000,
+    });
+    expect(await p.fetchCase(query(0))).toMatchObject({ kind: "error", errorCode: "provider_disabled" });
   });
 });

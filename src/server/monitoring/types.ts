@@ -39,10 +39,20 @@ export type ProviderErrorCode =
   | "provider_timeout"
   | "provider_exception"
   | "provider_disabled"
-  | "insecure_transport_refused";
+  | "insecure_transport_refused"
+  | "court_not_recognized"
+  | "ambiguous_source_result"
+  | "source_http_error"
+  | "invalid_response";
 
 export interface CourtDataProvider {
   /** Stable id, matches ^[a-z0-9_-]{1,40}$ (DB constraint). */
   readonly id: string;
+  /**
+   * Optional minimum interval between two checks of the same file. Enforced by
+   * the monitoring service before calling the provider; a too-early check is
+   * refused without recording a run (freshness is never overstated).
+   */
+  readonly minIntervalMs?: number;
   fetchCase(query: CourtCaseQuery, signal?: AbortSignal): Promise<ProviderResult>;
 }

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SYNTHETIC fixture. Structure follows the official SOAP 1.1 sample at
+     http://portalquery.just.ro/query.asmx?op=CautareDosare ; all values are fictional. -->
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <CautareDosareResponse xmlns="portalquery.just.ro">
+      <CautareDosareResult>
+        <Dosar>
+          <parti>
+            <DosarParte>
+              <nume>POPESCU ION-SINTETIC</nume>
+              <calitateParte>Reclamant</calitateParte>
+            </DosarParte>
+            <DosarParte>
+              <nume>ALFA CONSTRUCT SRL</nume>
+              <calitateParte>Pârât</calitateParte>
+            </DosarParte>
+            <DosarParte xsi:nil="true" />
+          </parti>
+          <sedinte>
+            <DosarSedinta>
+              <complet>C5</complet>
+              <data>2026-12-19T00:00:00</data>
+              <ora>9:00</ora>
+              <solutie xsi:nil="true" />
+              <solutieSumar />
+              <dataPronuntare xsi:nil="true" />
+              <documentSedinta xsi:nil="true" />
+              <numarDocument />
+              <dataDocument xsi:nil="true" />
+            </DosarSedinta>
+            <DosarSedinta>
+              <complet>C5</complet>
+              <data>2026-11-12T00:00:00</data>
+              <ora>09:00</ora>
+              <solutie>Amână cauza</solutie>
+              <solutieSumar>Amână cauza pentru lipsă de procedură cu pârâta &amp; acordă termen.</solutieSumar>
+              <dataPronuntare>2026-11-12T00:00:00</dataPronuntare>
+              <documentSedinta>Incheiereamanare</documentSedinta>
+              <numarDocument></numarDocument>
+              <dataDocument>2026-11-12T00:00:00</dataDocument>
+            </DosarSedinta>
+          </sedinte>
+          <caiAtac />
+          <numar>1234/3/2026</numar>
+          <numarVechi />
+          <data>2026-03-02T00:00:00</data>
+          <institutie>TribunalulBUCURESTI</institutie>
+          <departament>Secţia a VI-a Civilă</departament>
+          <categorieCaz>Civil</categorieCaz>
+          <stadiuProcesual>Fond</stadiuProcesual>
+          <obiect><![CDATA[pretenţii <fictiv>]]></obiect>
+          <dataModificare>2026-07-15T10:30:00</dataModificare>
+          <categorieCazNume>Civil</categorieCazNume>
+          <stadiuProcesualNume>Fond</stadiuProcesualNume>
+        </Dosar>
+        <Dosar>
+          <parti />
+          <sedinte />
+          <caiAtac />
+          <numar>1234/3/2026/a1</numar>
+          <data>2026-05-02T00:00:00</data>
+          <institutie>TribunalulBUCURESTI</institutie>
+          <categorieCaz>Civil</categorieCaz>
+          <stadiuProcesual>Fond</stadiuProcesual>
+          <obiect>măsuri asigurătorii (fictiv)</obiect>
+          <dataModificare>2026-05-02T08:00:00</dataModificare>
+          <categorieCazNume>Civil</categorieCazNume>
+          <stadiuProcesualNume>Fond</stadiuProcesualNume>
+        </Dosar>
+      </CautareDosareResult>
+    </CautareDosareResponse>
+  </soap:Body>
+</soap:Envelope>

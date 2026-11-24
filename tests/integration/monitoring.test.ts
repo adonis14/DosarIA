@@ -208,6 +208,19 @@ describe("monitoring authorization", () => {
     expect(visibleToB).toEqual([]);
   });
 
+  it("honours a provider's minimum interval: refused up front, nothing recorded, never 'no changes'", async () => {
+    const caseId = await freshCase(`${300 + Math.floor(Math.random() * 600)}/5/2026`);
+    const ctx = await contextFor(w.lawyerA1.client);
+    const slowSource: CourtDataProvider = { id: "mock", minIntervalMs: 60 * 60_000, fetchCase: (q) => mock.fetchCase(q) };
+    resetRateLimits();
+    expect((await checkCaseForUpdates(ctx, caseId, { provider: slowSource })).ok).toBe(true);
+    resetRateLimits();
+    const second = await checkCaseForUpdates(ctx, caseId, { provider: slowSource });
+    expect(second).toMatchObject({ ok: false, code: "rate_limited" });
+    const { count } = await adminClient().from("monitoring_runs").select("id", { count: "exact", head: true }).eq("case_id", caseId);
+    expect(count).toBe(1);
+  });
+
   it("rate-limits repeated checks of the same case", async () => {
     resetRateLimits();
     const ctx = await contextFor(w.lawyerA1.client);

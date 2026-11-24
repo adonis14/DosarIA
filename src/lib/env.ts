@@ -34,6 +34,8 @@ const schema = z
     MOCK_COURT_LATENCY_MS: z.coerce.number().int().min(0).max(5000).default(300),
     PORTAL_JUST_SOAP_ENDPOINT: z.string().default("https://portalquery.just.ro/query.asmx"),
     PORTAL_JUST_INTEGRATION_APPROVED: bool,
+    PORTAL_JUST_MIN_INTERVAL_MINUTES: z.coerce.number().int().min(15).max(1440).default(60),
+    PORTAL_JUST_TIMEOUT_MS: z.coerce.number().int().min(1000).max(60000).default(15000),
     AI_PROVIDER_ENABLED: bool,
     AI_EU_PROCESSING_VERIFIED: bool,
     AI_DPA_SIGNED: bool,

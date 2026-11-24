@@ -72,6 +72,16 @@ export async function checkCaseForUpdates(ctx: AuthContext, caseId: string, deps
   const now = deps.now ?? (() => new Date());
   const startedAt = now().toISOString();
 
+  // Source-imposed minimum interval per file (e.g. the real portal). Refused
+  // up front and NOT recorded, so a skipped check is never shown as "no changes".
+  if (provider.minIntervalMs && c.last_check_attempt_at) {
+    const nextAllowed = Date.parse(c.last_check_attempt_at) + provider.minIntervalMs;
+    if (now().getTime() < nextAllowed) {
+      const minutes = Math.ceil((nextAllowed - now().getTime()) / 60_000);
+      return fail("rate_limited", `Dosarul a fost verificat recent. Următoarea verificare este permisă peste ${minutes} min.`);
+    }
+  }
+
   // Reads use the user's client: RLS guarantees these rows belong to this case.
   const [{ count: priorAttempts }, { data: lastSnapshot }] = await Promise.all([
     ctx.supabase.from("monitoring_runs").select("id", { count: "exact", head: true }).eq("case_id", c.id),

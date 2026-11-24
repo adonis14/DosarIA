@@ -192,7 +192,12 @@ concurrent double clicks, hit `UNIQUE (case_id, event_key)`.
 **Providers**
 - `MockCourtDataProvider`: deterministic synthetic timeline. See the comment at
   the top of `src/server/monitoring/providers/mock-provider.ts` and the README.
-- `PortalJustSoapProvider`: interface only. It refuses non-HTTPS endpoints,
+- `PortalJustSoapProvider`: real SOAP client, **disabled by flag**. See
+  `docs/PORTAL-INTEGRATION.md` for details. It is HTTPS-only (the portal's
+  HTTPS currently fails with Cloudflare 525) and needs explicit approval. It
+  drops party lists, derives a labelled status, and declares `minIntervalMs`,
+  which `check-case.ts` enforces before any request.
+- Earlier stub behaviour, kept: it refuses non-HTTPS endpoints,
   performs no network I/O, and returns `provider_disabled`. That result is
   recorded as a failed check, never as “no changes”.
 

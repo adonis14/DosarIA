@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
+import { serverEnv } from "@/lib/env";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { ERROR_CODE_LABELS, EVENT_TYPE_LABELS, MATTER_TYPE_LABELS, label } from "@/lib/labels";
 import { isAdminOf, requireOrgPageContext, roleIn } from "@/server/context";
@@ -90,7 +91,11 @@ export default async function CaseDetailPage({ params }: PageProps<"/cases/[case
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Monitorizare</CardTitle>
-            <CardDescription>Sursă: furnizor simulat (date sintetice). Integrarea portal.just.ro nu este activă.</CardDescription>
+            <CardDescription>
+              {serverEnv().COURT_DATA_PROVIDER === "portaljust_soap"
+                ? "Sursă: portalul instanțelor (portalquery.just.ro). Datele sunt informative și pot avea întârzieri față de instanță; verificați întotdeauna dosarul."
+                : "Sursă: furnizor simulat (date sintetice). Integrarea portal.just.ro nu este activă."}
+            </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
             <dl className="grid gap-3 text-sm sm:grid-cols-2" data-testid="monitoring-status">

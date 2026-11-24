@@ -58,6 +58,9 @@ export const ERROR_CODE_LABELS: Record<string, string> = {
   invalid_response: "Răspunsul sursei nu a putut fi validat.",
   missing_fields: "Răspunsul sursei nu conține toate datele necesare.",
   case_not_found_at_source: "Dosarul nu a fost găsit la sursă.",
+  court_not_recognized: "Instanța nu a putut fi identificată în nomenclatorul portalului. Verificați denumirea instanței.",
+  ambiguous_source_result: "Sursa a returnat mai multe dosare cu același număr; este necesară verificarea manuală.",
+  source_http_error: "Sursa a răspuns cu o eroare neașteptată.",
 };
 
 export function label<T extends Record<string, string>>(map: T, key: string | null | undefined): string {

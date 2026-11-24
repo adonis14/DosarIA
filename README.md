@@ -120,6 +120,20 @@ npm run test:e2e           # builds and starts the app (production mode) on :300
 npm run test:all
 ```
 
+**Live portal validation (opt-in, never in CI).** This sends a handful of
+requests to the real public service, and contains no client data:
+```bash
+PORTAL_LIVE_VALIDATION=1 npm run test:portal-live                       # HTTPS check only
+PORTAL_LIVE_VALIDATION=1 PORTAL_LIVE_ALLOW_HTTP_FOR_PUBLIC_QUERY=1 \
+  npm run test:portal-live                                              # + public hearing list → one public case
+```
+The non-personal findings are written to `test-results/portal-live-report.json`.
+
+Related documents:
+- [docs/PORTAL-INTEGRATION.md](docs/PORTAL-INTEGRATION.md): API findings and the enablement gate
+- [docs/STAGING-DEPLOYMENT.md](docs/STAGING-DEPLOYMENT.md): private EU staging plan
+- [docs/ROADMAP.md](docs/ROADMAP.md): roadmap
+
 - **Unit** (`tests/unit`): normalization, change detection, canonical hashing,
   the mock timeline, summaries (including the exact example from the brief),
   the LLM gate, validation, redirects and rate limiting.

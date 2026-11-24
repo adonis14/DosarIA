@@ -16,7 +16,9 @@ const RawHearingSchema = z.object({
   ora: z.string().regex(/^\d{2}:\d{2}$/).nullish(),
   complet: shortText(100).nullish(),
   solutie: shortText(200).nullish(),
-  solutieSumar: shortText(1000).nullish(),
+  // Real portal summaries reach several thousand characters and the decisive
+  // part (e.g. appeal rights) is usually at the END — never truncate to 1000.
+  solutieSumar: shortText(10_000).nullish(),
   numarDocument: shortText(200).nullish(),
 });
 

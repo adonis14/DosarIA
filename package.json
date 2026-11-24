@@ -20,7 +20,8 @@
     "test:e2e": "playwright test",
     "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e",
     "audit:deps": "npm audit --omit=dev",
-    "scan:secrets": "node scripts/scan-secrets.mjs"
+    "scan:secrets": "node scripts/scan-secrets.mjs",
+    "test:portal-live": "vitest run --config vitest.portal-live.config.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

@@ -242,6 +242,14 @@ never shown to that tenant.
   publisher is the shadcn maintainer account, and 0.5.2 carries an SLSA
   provenance attestation. Run `npm audit` and review new transitive
   dependencies on every update.
+- **Court summaries contain personal data** (finding from live portal
+  validation, 2026-11-25). The portal's `solutieSumar` texts name parties and
+  practitioners, so snapshots of real cases contain personal data even though
+  the structured party list is dropped. DPA, retention and erasure must cover
+  this. The (disabled) LLM allow-list includes `solution_text`, so
+  **pseudonymization is a precondition** for ever enabling an LLM.
+- **Portal transport**: the portal's HTTPS endpoint fails (Cloudflare 525) and
+  the provider refuses HTTP by design. See `docs/PORTAL-INTEGRATION.md`.
 - **Dev-only advisory (open)**: `npm audit` reports 4 *moderate* findings, all in
   one chain: `shadcn` (CLI) → `ts-morph` → `@ts-morph/common` → `minimatch`
   10.x (GHSA-g3hv-75wg-m249, a ReDoS via glob patterns, fixed in ≥ 11.0.1).
