@@ -1,27 +1,38 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { GeistMono } from "geist/font/mono";
+import { GeistSans } from "geist/font/sans";
+import { I18nProvider } from "@/i18n/client";
+import { getLocale, getT } from "@/i18n/server";
 import "./globals.css";
 
-// next/font self-hosts the font files at build time: no runtime requests to
-// third-party font CDNs (keeps the CSP at font-src 'self').
-const sans = Geist({ variable: "--font-sans", subsets: ["latin", "latin-ext"] });
-const mono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+// The font files ship inside the `geist` package (next/font/local), so neither
+// build nor dev needs network access to a font CDN, and the browser never
+// requests third-party fonts (keeps the CSP at font-src 'self').
+// Variables set on <html>: --font-geist-sans, --font-geist-mono (see globals.css).
+const sans = GeistSans;
+const mono = GeistMono;
 
 // Every page is rendered per request: the nonce-based CSP (src/proxy.ts) can only
 // be applied to dynamically rendered HTML, and private pages must never be cached.
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: { default: "DosarIA", template: "%s · DosarIA" },
-  description: "Monitorizarea dosarelor și a termenelor procedurale pentru cabinete de avocatură.",
-  robots: { index: false, follow: false },
-  referrer: "strict-origin-when-cross-origin",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return {
+    title: { default: "DosarIA", template: "%s · DosarIA" },
+    description: t.meta.appDescription,
+    robots: { index: false, follow: false },
+    referrer: "strict-origin-when-cross-origin",
+  };
+}
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const [locale, t] = await Promise.all([getLocale(), getT()]);
   return (
-    <html lang="ro" className={`${sans.variable} ${mono.variable} h-full antialiased`}>
-      <body className="min-h-full bg-background font-sans text-foreground">{children}</body>
+    <html lang={locale} className={`${sans.variable} ${mono.variable} h-full antialiased`}>
+      <body className="min-h-full bg-background font-sans text-foreground">
+        <I18nProvider value={{ locale, messages: t.client, roles: t.labels.roles }}>{children}</I18nProvider>
+      </body>
     </html>
   );
 }
