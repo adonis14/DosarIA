@@ -1,8 +1,9 @@
+import { getDictionary, type Locale } from "../../src/i18n";
 import type { AuthContext, Membership } from "../../src/server/context";
 import type { Db } from "./world";
 
 /** Build an AuthContext from a signed-in client, resolving memberships through RLS like the app does. */
-export async function contextFor(client: Db, activeOrgId?: string): Promise<AuthContext> {
+export async function contextFor(client: Db, activeOrgId?: string, locale: Locale = "en"): Promise<AuthContext> {
   const {
     data: { user },
   } = await client.auth.getUser();
@@ -23,5 +24,7 @@ export async function contextFor(client: Db, activeOrgId?: string): Promise<Auth
     user: { id: user.id, email: user.email ?? "", emailVerified: Boolean(user.email_confirmed_at) },
     memberships,
     activeOrg: memberships.find((m) => m.organizationId === activeOrgId) ?? memberships[0] ?? null,
+    locale,
+    t: getDictionary(locale),
   };
 }

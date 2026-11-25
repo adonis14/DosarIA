@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getT } from "@/i18n/server";
 import { fail, type ActionResult } from "@/lib/errors";
 import { formToObject } from "@/lib/validation";
 import { getAuthContext } from "@/server/context";
@@ -20,8 +21,9 @@ const str = (formData: FormData, key: string) => {
 };
 
 export async function createCaseAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const t = await getT();
   const ctx = await getAuthContext();
-  if (!ctx) return fail("unauthenticated");
+  if (!ctx) return fail(t, "unauthenticated");
   const result = await createCase(
     ctx,
     formToObject(formData, ["courtCaseNumber", "courtName", "title", "matterType", "assignedUserId", "assignedAssistantId"]),
@@ -32,8 +34,9 @@ export async function createCaseAction(_prev: ActionResult | null, formData: For
 }
 
 export async function updateCaseAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const t = await getT();
   const ctx = await getAuthContext();
-  if (!ctx) return fail("unauthenticated");
+  if (!ctx) return fail(t, "unauthenticated");
   const caseId = str(formData, "caseId");
   const result = await updateCase(ctx, caseId, formToObject(formData, ["courtCaseNumber", "courtName", "title", "matterType", "status"]));
   if (!result.ok) return result;
@@ -43,18 +46,20 @@ export async function updateCaseAction(_prev: ActionResult | null, formData: For
 }
 
 export async function assignCaseAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const t = await getT();
   const ctx = await getAuthContext();
-  if (!ctx) return fail("unauthenticated");
+  if (!ctx) return fail(t, "unauthenticated");
   const caseId = str(formData, "caseId");
   const result = await assignCase(ctx, caseId, formToObject(formData, ["assignedUserId", "assignedAssistantId"]));
   if (!result.ok) return result;
   revalidatePath(`/cases/${caseId}`);
-  return { ok: true, message: "Alocarea a fost actualizată." };
+  return { ok: true, message: t.success.assignmentUpdated };
 }
 
 export async function archiveCaseAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const t = await getT();
   const ctx = await getAuthContext();
-  if (!ctx) return fail("unauthenticated");
+  if (!ctx) return fail(t, "unauthenticated");
   const caseId = str(formData, "caseId");
   const result = await archiveCase(ctx, caseId);
   if (!result.ok) return result;

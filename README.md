@@ -7,7 +7,7 @@ This MVP demonstrates a **securely isolated multi-tenant** application in which
 lawyers can:
 - manage court files
 - run (simulated) court-update checks
-- read Romanian summaries
+- read summaries in English or Romanian
 - track reminders that a lawyer must confirm
 
 > ⚠️ **Synthetic data only.** Court data comes from a deterministic mock
@@ -17,6 +17,25 @@ lawyers can:
 
 - Architecture, data model and access matrix: [ARCHITECTURE.md](ARCHITECTURE.md)
 - Security, GDPR, EU deployment and known risks: [SECURITY.md](SECURITY.md)
+
+## Interface language
+
+The interface is in **English by default**, with a full **Romanian** version.
+Use the **EN / RO** switch in the header, on the sign-in pages or on the
+Profile page:
+- The choice is kept in a cookie and, for signed-in users, saved to their
+  profile, so it follows them to another browser.
+- In English, court-published terms (court names, stages, statuses, outcomes)
+  are shown with the Romanian original next to them, e.g. *Bucharest Tribunal
+  (Tribunalul București)*. Unknown terms are shown unchanged.
+- Update summaries are stored in both languages. The other language is one
+  click away.
+- Free text written by the court, such as a ruling's summary, stays in
+  Romanian. Auth emails contain both languages.
+
+The walkthrough below quotes the Romanian labels. The English interface shows
+the equivalents, for example *Check for updates* instead of *Verifică
+actualizări*.
 
 ## Stack
 
@@ -206,6 +225,7 @@ src/
   server/dal/*                authorized data access
   server/monitoring/*         provider interface, mock + SOAP stub, normalize, diff, check service
   server/summaries/*          deterministic RO/EN summaries, gated LLM interface
+  i18n/                       EN/RO dictionaries, locale cookie, court-term glossary
   lib/                        env, Supabase clients, validation, errors, rate limit, labels
 supabase/
   migrations/                 schema, RLS, guards/audit, RPCs

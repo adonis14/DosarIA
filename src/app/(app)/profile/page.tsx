@@ -1,48 +1,63 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { updateProfileAction } from "@/app/actions/organization";
 import { ActionForm, FieldError, SubmitButton } from "@/components/app/action-form";
+import { LanguageSwitcher } from "@/components/app/language-switcher";
 import { PageHeader } from "@/components/app/page-header";
 import { RoleBadge } from "@/components/app/status-badges";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getT } from "@/i18n/server";
 import { requirePageContext } from "@/server/context";
 import { getOwnProfile } from "@/server/dal/organizations";
 
-export const metadata = { title: "Profil" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT()).meta.profile };
+}
 
 export default async function ProfilePage() {
   const ctx = await requirePageContext();
+  const { t } = ctx;
   const profile = await getOwnProfile(ctx);
 
   return (
     <div className="grid max-w-2xl gap-6">
-      <PageHeader title="Profil" description={ctx.user.email} />
+      <PageHeader title={t.profile.title} description={ctx.user.email} />
       <Card>
         <CardHeader>
-          <CardTitle>Date personale</CardTitle>
-          <CardDescription>Adresa de e-mail se modifică doar prin fluxul de confirmare al contului.</CardDescription>
+          <CardTitle>{t.profile.personalTitle}</CardTitle>
+          <CardDescription>{t.profile.personalDescription}</CardDescription>
         </CardHeader>
         <CardContent>
           <ActionForm action={updateProfileAction} className="grid gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="fullName">Nume complet</Label>
+              <Label htmlFor="fullName">{t.common.fullName}</Label>
               <Input id="fullName" name="fullName" defaultValue={profile?.full_name ?? ""} required />
               <FieldError name="fullName" />
             </div>
             <div>
-              <SubmitButton variant="outline">Salvează</SubmitButton>
+              <SubmitButton variant="outline">{t.common.save}</SubmitButton>
             </div>
           </ActionForm>
         </CardContent>
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Organizații</CardTitle>
+          <CardTitle>{t.profile.languageTitle}</CardTitle>
+          <CardDescription>{t.profile.languageDescription}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <LanguageSwitcher />
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>{t.profile.organizationsTitle}</CardTitle>
         </CardHeader>
         <CardContent>
           {ctx.memberships.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nu aparțineți niciunei organizații.</p>
+            <p className="text-sm text-muted-foreground">{t.profile.noOrganizations}</p>
           ) : (
             <ul className="grid gap-2 text-sm">
               {ctx.memberships.map((m) => (
@@ -56,11 +71,11 @@ export default async function ProfilePage() {
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Securitate</CardTitle>
+          <CardTitle>{t.profile.securityTitle}</CardTitle>
         </CardHeader>
         <CardContent className="text-sm">
           <Link href="/update-password" className="underline-offset-4 hover:underline">
-            Schimbă parola
+            {t.profile.changePassword}
           </Link>
         </CardContent>
       </Card>

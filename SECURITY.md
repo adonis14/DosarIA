@@ -73,7 +73,12 @@ ownership audit query.
   - audit writes: per actor, to prevent log flooding
   - Supabase Auth applies its own server-side limits on top
   - **Limitation**: these limits are in-memory, so they apply per instance (see §8).
-- **Errors**: users see generic Romanian messages. Server logs contain a context
+- **Interface language**: the `dosaria_locale` cookie and
+  `profiles.preferred_locale` affect presentation only, never authorization.
+  Unknown values fall back to English. The column accepts only `en` and `ro`
+  (CHECK constraint). Users can update it on their own profile only, through
+  RLS and a single-column grant, and tests cover this.
+- **Errors**: users see generic messages in their interface language. Server logs contain a context
   label and an error code only, never payloads, tokens or case content. The
   error boundary never renders exception text.
 - **Caching**: authenticated responses carry `Cache-Control: private, no-store`.

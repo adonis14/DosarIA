@@ -2,6 +2,8 @@ import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
+import { getDictionary, type Dictionary, type Locale } from "@/i18n";
+import { getLocale } from "@/i18n/server";
 import { createSupabaseServerClient, type UserSupabaseClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
 
@@ -20,6 +22,9 @@ export type AuthContext = {
   memberships: Membership[];
   /** Preferred organization for list views. A preference only — never proof of access. */
   activeOrg: Membership | null;
+  /** Interface language for messages (presentation only — never used for authorization). */
+  locale: Locale;
+  t: Dictionary;
 };
 
 export const ACTIVE_ORG_COOKIE = "dosaria_active_org";
@@ -57,12 +62,15 @@ export const getAuthContext = cache(async (): Promise<AuthContext | null> => {
 
   const preferred = (await cookies()).get(ACTIVE_ORG_COOKIE)?.value;
   const activeOrg = memberships.find((m) => m.organizationId === preferred) ?? memberships[0] ?? null;
+  const locale = await getLocale();
 
   return {
     supabase,
     user: { id: user.id, email: user.email ?? "", emailVerified: Boolean(user.email_confirmed_at) },
     memberships,
     activeOrg,
+    locale,
+    t: getDictionary(locale),
   };
 });
 

@@ -1,22 +1,25 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { MailCheck } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { getT } from "@/i18n/server";
 
-export const metadata = { title: "Verificați e-mailul" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT()).meta.checkEmail };
+}
 
-export default function CheckEmailPage() {
+export default async function CheckEmailPage() {
+  const t = await getT();
   return (
     <Card>
       <CardHeader>
         <MailCheck className="size-6 text-muted-foreground" aria-hidden />
-        <CardTitle>Verificați e-mailul</CardTitle>
-        <CardDescription>
-          Dacă adresa poate fi înregistrată, ați primit un link de confirmare. Contul devine activ după confirmare.
-        </CardDescription>
+        <CardTitle>{t.checkEmail.title}</CardTitle>
+        <CardDescription>{t.checkEmail.description}</CardDescription>
       </CardHeader>
       <CardContent className="text-sm">
         <Link href="/login" className="underline-offset-4 hover:underline">
-          Înapoi la autentificare
+          {t.common.backToLogin}
         </Link>
       </CardContent>
     </Card>

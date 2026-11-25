@@ -2,6 +2,7 @@ import Link from "next/link";
 import { LogOut, Scale } from "lucide-react";
 import { logoutAction } from "@/app/actions/auth";
 import { switchOrganizationAction } from "@/app/actions/organization";
+import { LanguageSwitcher } from "@/components/app/language-switcher";
 import { RoleBadge } from "@/components/app/status-badges";
 import { Button } from "@/components/ui/button";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
@@ -12,6 +13,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const ctx = await requirePageContext();
+  const { t } = ctx;
   const isAdmin = ctx.activeOrg?.role === "admin";
 
   return (
@@ -23,15 +25,15 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
             DosarIA
           </Link>
           {ctx.activeOrg && (
-            <nav className="flex items-center gap-4 text-sm" aria-label="Navigare principală">
+            <nav className="flex items-center gap-4 text-sm" aria-label={t.nav.mainLabel}>
               <Link href="/dashboard" className="text-muted-foreground hover:text-foreground">
-                Panou
+                {t.nav.dashboard}
               </Link>
               <Link href="/cases" className="text-muted-foreground hover:text-foreground">
-                Dosare
+                {t.nav.cases}
               </Link>
               <Link href="/settings" className="text-muted-foreground hover:text-foreground">
-                {isAdmin ? "Organizație" : "Echipă"}
+                {isAdmin ? t.nav.organization : t.nav.team}
               </Link>
             </nav>
           )}
@@ -39,7 +41,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
             {ctx.memberships.length > 1 ? (
               <form action={switchOrganizationAction} className="flex items-center gap-2">
                 <label htmlFor="org-switch" className="sr-only">
-                  Organizație activă
+                  {t.nav.activeOrganization}
                 </label>
                 <NativeSelect id="org-switch" name="organizationId" defaultValue={ctx.activeOrg?.organizationId} size="sm">
                   {ctx.memberships.map((m) => (
@@ -49,7 +51,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
                   ))}
                 </NativeSelect>
                 <Button type="submit" variant="outline" size="sm">
-                  Schimbă
+                  {t.nav.switchOrganization}
                 </Button>
               </form>
             ) : (
@@ -59,19 +61,18 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
             <Link href="/profile" className="text-muted-foreground hover:text-foreground" data-testid="current-user">
               {ctx.user.email}
             </Link>
+            <LanguageSwitcher />
             <form action={logoutAction}>
               <Button type="submit" variant="ghost" size="sm">
                 <LogOut aria-hidden />
-                Ieșire
+                {t.nav.logout}
               </Button>
             </form>
           </div>
         </div>
       </header>
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
-      <footer className="border-t py-4 text-center text-xs text-muted-foreground">
-        DosarIA (MVP) · Datele instanțelor sunt simulate (date sintetice). Rezumatele nu constituie consultanță juridică.
-      </footer>
+      <footer className="border-t py-4 text-center text-xs text-muted-foreground">{t.footer.text}</footer>
     </div>
   );
 }

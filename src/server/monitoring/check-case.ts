@@ -1,6 +1,7 @@
 import "server-only";
 import { fail, logServerError, type ActionResult } from "@/lib/errors";
 import { LIMITS, rateLimit } from "@/lib/security/rate-limit";
+import { SUGGESTED_REMINDER_TEXT } from "@/lib/suggested-reminder";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/database.types";
 import type { AuthContext } from "@/server/context";
@@ -57,14 +58,14 @@ type RecordInput = {
  */
 export async function checkCaseForUpdates(ctx: AuthContext, caseId: string, deps: Deps = {}): Promise<ActionResult<CheckResult>> {
   const c = await getAuthorizedCase(ctx, caseId);
-  if (!c) return fail("not_found");
-  if (c.status === "archived") return fail("validation", "Dosarele arhivate nu mai sunt monitorizate.");
+  if (!c) return fail(ctx.t, "not_found");
+  if (c.status === "archived") return fail(ctx.t, "validation", ctx.t.errors.archivedNotMonitored);
 
   if (
     !rateLimit(`check:${ctx.user.id}:${c.id}`, LIMITS.monitoringPerCase.limit, LIMITS.monitoringPerCase.windowMs).ok ||
     !rateLimit(`check:${ctx.user.id}`, LIMITS.monitoringPerUser.limit, LIMITS.monitoringPerUser.windowMs).ok
   ) {
-    return fail("rate_limited");
+    return fail(ctx.t, "rate_limited");
   }
 
   const provider = deps.provider ?? getCourtDataProvider();
@@ -78,7 +79,7 @@ export async function checkCaseForUpdates(ctx: AuthContext, caseId: string, deps
     const nextAllowed = Date.parse(c.last_check_attempt_at) + provider.minIntervalMs;
     if (now().getTime() < nextAllowed) {
       const minutes = Math.ceil((nextAllowed - now().getTime()) / 60_000);
-      return fail("rate_limited", `Dosarul a fost verificat recent. Următoarea verificare este permisă peste ${minutes} min.`);
+      return fail(ctx.t, "rate_limited", ctx.t.errors.checkedRecently(minutes));
     }
   }
 
@@ -116,7 +117,7 @@ export async function checkCaseForUpdates(ctx: AuthContext, caseId: string, deps
     });
     if (error || !data) {
       logServerError("record_monitoring_run", error);
-      return fail("internal", "Rezultatul verificării nu a putut fi salvat.");
+      return fail(ctx.t, "internal", ctx.t.errors.checkNotSaved);
     }
     const result = data as { outcome: CheckOutcome; events_created: number };
     return {
@@ -201,8 +202,8 @@ async function toEventPayload(event: DetectedEvent, summaries: SummaryProvider):
     ...(event.suggestedReminderDate
       ? {
           suggested_reminder: {
-            title: "Termen de judecată (sugerat din sursă)",
-            description: "Dată preluată automat din sursa monitorizată. Verificați și confirmați manual.",
+            title: SUGGESTED_REMINDER_TEXT.title,
+            description: SUGGESTED_REMINDER_TEXT.description,
             due_date: event.suggestedReminderDate,
           },
         }

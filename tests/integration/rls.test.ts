@@ -468,3 +468,46 @@ describe("Audit trail protection", () => {
     expect(JSON.stringify(data)).not.toContain(`invitee.${w.tag}`);
   });
 });
+
+describe("interface language preference (profiles.preferred_locale)", () => {
+  it("a user can set their own language to en or ro", async () => {
+    for (const locale of ["ro", "en"]) {
+      const { data, error } = await w.lawyerA1.client
+        .from("profiles")
+        .update({ preferred_locale: locale })
+        .eq("id", w.lawyerA1.id)
+        .select("preferred_locale");
+      expect(error).toBeNull();
+      expect(data).toEqual([{ preferred_locale: locale }]);
+    }
+  });
+
+  it("only supported languages are accepted", async () => {
+    const { error } = await w.lawyerA1.client.from("profiles").update({ preferred_locale: "de" }).eq("id", w.lawyerA1.id);
+    expect(error?.code).toBe("23514");
+  });
+
+  it("nobody can change a colleague's language, not even an admin", async () => {
+    await admin().from("profiles").update({ preferred_locale: "en" }).eq("id", w.lawyerA2.id);
+    for (const actor of [w.lawyerA1, w.adminA]) {
+      const { data } = await actor.client
+        .from("profiles")
+        .update({ preferred_locale: "ro" })
+        .eq("id", w.lawyerA2.id)
+        .select("id");
+      expect(data ?? []).toEqual([]);
+    }
+    const { data } = await admin().from("profiles").select("preferred_locale").eq("id", w.lawyerA2.id).single();
+    expect(data!.preferred_locale).toBe("en");
+  });
+
+  it("the new column grant does not open other profile columns", async () => {
+    const { error } = await w.lawyerA1.client
+      .from("profiles")
+      .update({ preferred_locale: "ro", email: `changed.${w.tag}@example.com` })
+      .eq("id", w.lawyerA1.id);
+    expect(error?.code).toBe("42501");
+    const { data } = await admin().from("profiles").select("email").eq("id", w.lawyerA1.id).single();
+    expect(data!.email).toBe(w.lawyerA1.email);
+  });
+});

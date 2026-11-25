@@ -110,7 +110,7 @@ operation. `anon` has no privileges on any table.
 
 | Table | SELECT | INSERT | UPDATE | DELETE | Privileged path |
 |---|---|---|---|---|---|
-| `profiles` | Self; users sharing an organization | ✗ (trigger on `auth.users`) | Self, `full_name` only | ✗ | Auth trigger |
+| `profiles` | Self; users sharing an organization | ✗ (trigger on `auth.users`) | Self, `full_name` and `preferred_locale` only | ✗ | Auth trigger |
 | `organizations` | Members | ✗; only RPC `create_organization` (caller becomes admin; email must be verified; max 3 per user) | Admins, `name` only | ✗ | `private.purge_organization` (DB owner only) |
 | `organization_memberships` | Own rows; members of the same organization | ✗; only RPCs `create_organization` / `accept_invitation` | Admins, `role` and `status` only. Not their own row. The last active admin is protected. `organization_id` / `user_id` are immutable. | ✗ (use status `removed`) | Seed/test fixtures (service role) |
 | `organization_invitations` | Admins of that organization | Admins; `invited_by` is forced to the caller | Admins: revoke only (`revoked_at`) | ✗ | `accept_invitation` (definer, checks token, expiry, revocation and verified email) |
@@ -217,6 +217,26 @@ concurrent double clicks, hit `UNIQUE (case_id, event_key)`.
 The UI labels every summary as generated automatically from templates, and as
 not constituting legal advice.
 
+### Interface language
+
+The interface is in English (the default) and Romanian, and lives in `src/i18n/`:
+- **Dictionaries**: `dictionaries/en.ts` and `ro.ts`. Both have the same
+  type, which the compiler and a unit test enforce.
+- **Locale**: read from the `dosaria_locale` cookie (HttpOnly, `SameSite=Lax`).
+  For signed-in users it is also stored in `profiles.preferred_locale`; it is
+  restored at sign-in, and saved by `setLocaleAction`.
+- **Where it is used**: the locale is part of `AuthContext`, so the DAL and
+  Server Actions return messages in the user's language. It is never used for
+  authorization.
+- **Validation**: Zod schemas carry language-neutral message keys;
+  `fieldErrorsOf(error, t)` translates them.
+- **Court terms**: `court-terms.ts` maps published Romanian terms and court
+  names to English glosses. In English the UI shows the gloss next to the
+  original, and unknown terms are shown unchanged. Court-written free text is
+  never translated.
+- **Suggested reminders**: their stored text stays Romanian
+  (`SUGGESTED_REMINDER_TEXT`), and the UI shows it in the reader's language.
+
 ## 7. Deadlines and reminders
 
 There is no automatic Romanian procedural-deadline calculation. Reminders are:
@@ -227,7 +247,7 @@ Both start as `proposed` and become `confirmed` only through an explicit action
 by an authorized lawyer. The database records who confirmed it and when, and
 rejects confirmation without an authenticated lawyer or admin. When a hearing
 moves, reminders dated on the old hearing date become `needs_review`. Only
-`confirmed` reminders appear in the dashboard's “Termene confirmate”.
+`confirmed` reminders appear in the dashboard's “Confirmed deadlines” (“Termene confirmate”).
 
 ## 8. Testing strategy
 

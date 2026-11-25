@@ -52,22 +52,22 @@ export async function listMembers(ctx: AuthContext, organizationId: string): Pro
 
 export async function createOrganization(ctx: AuthContext, input: unknown): Promise<ActionResult<{ id: string }>> {
   const parsed = organizationNameSchema.safeParse(input);
-  if (!parsed.success) return fail("validation", undefined, fieldErrorsOf(parsed.error));
-  if (!ctx.user.emailVerified) return fail("forbidden", "Confirmați mai întâi adresa de e-mail.");
+  if (!parsed.success) return fail(ctx.t, "validation", undefined, fieldErrorsOf(parsed.error, ctx.t));
+  if (!ctx.user.emailVerified) return fail(ctx.t, "forbidden", ctx.t.errors.confirmEmailFirst);
 
   const { data, error } = await ctx.supabase.rpc("create_organization", { p_name: parsed.data.name });
   if (error) {
-    if (error.code === "54000") return fail("forbidden", "Ați atins numărul maxim de organizații.");
+    if (error.code === "54000") return fail(ctx.t, "forbidden", ctx.t.errors.orgLimitReached);
     logServerError("createOrganization", error);
-    return fail(classifyDbError(error));
+    return fail(ctx.t, classifyDbError(error));
   }
   return { ok: true, data: { id: data as string } };
 }
 
 export async function renameOrganization(ctx: AuthContext, organizationId: string, input: unknown): Promise<ActionResult> {
   const parsed = organizationNameSchema.safeParse(input);
-  if (!parsed.success) return fail("validation", undefined, fieldErrorsOf(parsed.error));
-  if (!isAdminOf(ctx, organizationId)) return fail("forbidden");
+  if (!parsed.success) return fail(ctx.t, "validation", undefined, fieldErrorsOf(parsed.error, ctx.t));
+  if (!isAdminOf(ctx, organizationId)) return fail(ctx.t, "forbidden");
   const { data, error } = await ctx.supabase
     .from("organizations")
     .update({ name: parsed.data.name })
@@ -76,7 +76,7 @@ export async function renameOrganization(ctx: AuthContext, organizationId: strin
     .maybeSingle();
   if (error || !data) {
     if (error) logServerError("renameOrganization", error);
-    return fail(error ? classifyDbError(error) : "forbidden");
+    return fail(ctx.t, error ? classifyDbError(error) : "forbidden");
   }
   return { ok: true };
 }
@@ -92,9 +92,9 @@ async function loadMembership(ctx: AuthContext, membershipId: string) {
 
 export async function changeMemberRole(ctx: AuthContext, input: unknown): Promise<ActionResult> {
   const parsed = memberRoleSchema.safeParse(input);
-  if (!parsed.success) return fail("validation", undefined, fieldErrorsOf(parsed.error));
+  if (!parsed.success) return fail(ctx.t, "validation", undefined, fieldErrorsOf(parsed.error, ctx.t));
   const membership = await loadMembership(ctx, parsed.data.membershipId);
-  if (!membership) return fail("not_found");
+  if (!membership) return fail(ctx.t, "not_found");
   if (!isAdminOf(ctx, membership.organization_id)) {
     await logSecurityEvent(ctx, {
       action: "security.role_change_denied",
@@ -102,9 +102,9 @@ export async function changeMemberRole(ctx: AuthContext, input: unknown): Promis
       resourceId: membership.id,
       organizationId: membership.organization_id,
     });
-    return fail("forbidden");
+    return fail(ctx.t, "forbidden");
   }
-  if (membership.user_id === ctx.user.id) return fail("forbidden", "Nu vă puteți modifica propriul rol.");
+  if (membership.user_id === ctx.user.id) return fail(ctx.t, "forbidden", ctx.t.errors.cannotChangeOwnRole);
 
   const { data, error } = await ctx.supabase
     .from("organization_memberships")
@@ -114,21 +114,21 @@ export async function changeMemberRole(ctx: AuthContext, input: unknown): Promis
     .maybeSingle();
   if (error) {
     const code = classifyDbError(error);
-    if (code === "validation") return fail("validation", "Organizația trebuie să păstreze cel puțin un administrator activ.");
+    if (code === "validation") return fail(ctx.t, "validation", ctx.t.errors.lastAdmin);
     logServerError("changeMemberRole", error);
-    return fail(code);
+    return fail(ctx.t, code);
   }
-  if (!data) return fail("forbidden");
+  if (!data) return fail(ctx.t, "forbidden");
   return { ok: true };
 }
 
 export async function changeMemberStatus(ctx: AuthContext, input: unknown): Promise<ActionResult> {
   const parsed = memberStatusSchema.safeParse(input);
-  if (!parsed.success) return fail("validation", undefined, fieldErrorsOf(parsed.error));
+  if (!parsed.success) return fail(ctx.t, "validation", undefined, fieldErrorsOf(parsed.error, ctx.t));
   const membership = await loadMembership(ctx, parsed.data.membershipId);
-  if (!membership) return fail("not_found");
-  if (!isAdminOf(ctx, membership.organization_id)) return fail("forbidden");
-  if (membership.user_id === ctx.user.id) return fail("forbidden", "Nu vă puteți modifica propriul statut.");
+  if (!membership) return fail(ctx.t, "not_found");
+  if (!isAdminOf(ctx, membership.organization_id)) return fail(ctx.t, "forbidden");
+  if (membership.user_id === ctx.user.id) return fail(ctx.t, "forbidden", ctx.t.errors.cannotChangeOwnStatus);
 
   const { data, error } = await ctx.supabase
     .from("organization_memberships")
@@ -138,11 +138,11 @@ export async function changeMemberStatus(ctx: AuthContext, input: unknown): Prom
     .maybeSingle();
   if (error) {
     const code = classifyDbError(error);
-    if (code === "validation") return fail("validation", "Organizația trebuie să păstreze cel puțin un administrator activ.");
+    if (code === "validation") return fail(ctx.t, "validation", ctx.t.errors.lastAdmin);
     logServerError("changeMemberStatus", error);
-    return fail(code);
+    return fail(ctx.t, code);
   }
-  if (!data) return fail("forbidden");
+  if (!data) return fail(ctx.t, "forbidden");
   return { ok: true };
 }
 
@@ -177,10 +177,10 @@ export async function createInvitation(
   input: unknown,
 ): Promise<ActionResult<{ link: string; expiresAt: string }>> {
   const parsed = invitationSchema.safeParse(input);
-  if (!parsed.success) return fail("validation", undefined, fieldErrorsOf(parsed.error));
+  if (!parsed.success) return fail(ctx.t, "validation", undefined, fieldErrorsOf(parsed.error, ctx.t));
   if (!isAdminOf(ctx, organizationId)) {
     await logSecurityEvent(ctx, { action: "security.invitation_denied", resourceType: "organization", resourceId: null });
-    return fail("forbidden");
+    return fail(ctx.t, "forbidden");
   }
 
   // An expired-but-pending invite for the same email would block a new one.
@@ -205,9 +205,9 @@ export async function createInvitation(
   });
   if (error) {
     const code = classifyDbError(error);
-    if (code === "conflict") return fail("conflict", "Există deja o invitație activă pentru această adresă.");
+    if (code === "conflict") return fail(ctx.t, "conflict", ctx.t.errors.invitationExists);
     logServerError("createInvitation", error);
-    return fail(code);
+    return fail(ctx.t, code);
   }
   const link = `${serverEnv().APP_URL}/invite?token=${token}`;
   return { ok: true, data: { link, expiresAt } };
@@ -215,7 +215,7 @@ export async function createInvitation(
 
 export async function revokeInvitation(ctx: AuthContext, invitationId: string): Promise<ActionResult> {
   const id = uuid.safeParse(invitationId);
-  if (!id.success) return fail("validation");
+  if (!id.success) return fail(ctx.t, "validation");
   const { data, error } = await ctx.supabase
     .from("organization_invitations")
     .update({ revoked_at: new Date().toISOString() })
@@ -226,35 +226,35 @@ export async function revokeInvitation(ctx: AuthContext, invitationId: string): 
     .maybeSingle();
   if (error) {
     logServerError("revokeInvitation", error);
-    return fail(classifyDbError(error));
+    return fail(ctx.t, classifyDbError(error));
   }
-  if (!data) return fail("not_found");
+  if (!data) return fail(ctx.t, "not_found");
   return { ok: true };
 }
 
 export async function acceptInvitation(ctx: AuthContext, rawToken: unknown): Promise<ActionResult<{ organizationId: string }>> {
   const token = invitationTokenSchema.safeParse(rawToken);
-  if (!token.success) return fail("validation", "Invitația este invalidă sau a expirat.");
+  if (!token.success) return fail(ctx.t, "validation", ctx.t.errors.invitationInvalid);
   const { data, error } = await ctx.supabase.rpc("accept_invitation", { p_token: token.data });
   if (error) {
-    if (error.code === "22023") return fail("validation", "Invitația este invalidă sau a expirat.");
-    if (error.code === "23505") return fail("conflict", "Sunteți deja membru al acestei organizații.");
+    if (error.code === "22023") return fail(ctx.t, "validation", ctx.t.errors.invitationInvalid);
+    if (error.code === "23505") return fail(ctx.t, "conflict", ctx.t.errors.alreadyMember);
     if (error.code === "42501") {
-      return fail("forbidden", "Invitația a fost emisă pentru o altă adresă de e-mail sau adresa nu este confirmată.");
+      return fail(ctx.t, "forbidden", ctx.t.errors.invitationWrongEmail);
     }
     logServerError("acceptInvitation", error);
-    return fail("internal");
+    return fail(ctx.t, "internal");
   }
   return { ok: true, data: { organizationId: data as string } };
 }
 
 export async function updateOwnProfile(ctx: AuthContext, input: unknown): Promise<ActionResult> {
   const parsed = profileSchema.safeParse(input);
-  if (!parsed.success) return fail("validation", undefined, fieldErrorsOf(parsed.error));
+  if (!parsed.success) return fail(ctx.t, "validation", undefined, fieldErrorsOf(parsed.error, ctx.t));
   const { error } = await ctx.supabase.from("profiles").update({ full_name: parsed.data.fullName }).eq("id", ctx.user.id);
   if (error) {
     logServerError("updateOwnProfile", error);
-    return fail(classifyDbError(error));
+    return fail(ctx.t, classifyDbError(error));
   }
   return { ok: true };
 }

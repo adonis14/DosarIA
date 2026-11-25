@@ -1,5 +1,14 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { adminClient, anonClient, buildWorld, createConfirmedUser, signIn, type Db, type World } from "../helpers/world";
+import {
+  adminClient,
+  anonClient,
+  buildWorld,
+  createConfirmedUser,
+  signIn,
+  TEST_PASSWORD,
+  type Db,
+  type World,
+} from "../helpers/world";
 
 /*
  * Authorization tests for every Server Action and the auth Route Handler.
@@ -51,6 +60,8 @@ const monitoringActions = await import("@/app/actions/monitoring");
 const reminderActions = await import("@/app/actions/reminders");
 const orgActions = await import("@/app/actions/organization");
 const authActions = await import("@/app/actions/auth");
+const localeActions = await import("@/app/actions/locale");
+const { getDictionary } = await import("@/i18n");
 const { resetRateLimits } = await import("@/lib/security/rate-limit");
 const { GET: confirmRoute } = await import("@/app/auth/confirm/route");
 
@@ -461,5 +472,95 @@ describe("auth actions and route handler", () => {
     expect(bad).toEqual({ redirect: "/auth/error" });
     const missing = await run(() => confirmRoute(new NextRequest("http://localhost:3000/auth/confirm?type=signup")));
     expect(missing).toEqual({ redirect: "/auth/error" });
+  });
+});
+
+describe("interface language (presentation only)", () => {
+  const en = getDictionary("en");
+  const ro = getDictionary("ro");
+
+  it("messages follow the language cookie; English is the default", async () => {
+    actAs(null);
+    expect(await run(() => caseActions.createCaseAction(null, form(validCase)))).toMatchObject({
+      ok: false,
+      code: "unauthenticated",
+      error: en.errors.codes.unauthenticated,
+    });
+    state.cookieJar.set("dosaria_locale", "ro");
+    expect(await run(() => caseActions.createCaseAction(null, form(validCase)))).toMatchObject({
+      ok: false,
+      code: "unauthenticated",
+      error: ro.errors.codes.unauthenticated,
+    });
+  });
+
+  it("an unknown language cookie falls back to English", async () => {
+    actAs(null);
+    state.cookieJar.set("dosaria_locale", "<script>");
+    expect(await run(() => caseActions.createCaseAction(null, form(validCase)))).toMatchObject({
+      error: en.errors.codes.unauthenticated,
+    });
+  });
+
+  it("validation messages are translated, and the language never changes authorization", async () => {
+    actAs(w.lawyerA1.client, w.orgA);
+    const enResult = (await run(() => caseActions.createCaseAction(null, form({ ...validCase, title: "x" })))) as {
+      fieldErrors?: Record<string, string[]>;
+    };
+    expect(enResult.fieldErrors?.title).toEqual(["Title: at least 2 characters."]);
+
+    actAs(w.lawyerA1.client, w.orgA);
+    state.cookieJar.set("dosaria_locale", "ro");
+    const roResult = (await run(() => caseActions.createCaseAction(null, form({ ...validCase, title: "x" })))) as {
+      fieldErrors?: Record<string, string[]>;
+    };
+    expect(roResult.fieldErrors?.title).toEqual(["Titlul: minimum 2 caractere."]);
+
+    // Same denial in both languages for another tenant's case.
+    for (const locale of ["en", "ro"]) {
+      actAs(w.lawyerA1.client, w.orgA);
+      state.cookieJar.set("dosaria_locale", locale);
+      expect(await run(() => caseActions.archiveCaseAction(null, form({ caseId: w.caseB1 })))).toMatchObject({
+        ok: false,
+        code: "not_found",
+      });
+    }
+  });
+
+  it("setLocaleAction saves the choice to the caller's own profile only and ignores unknown values", async () => {
+    await adminClient().from("profiles").update({ preferred_locale: null }).in("id", [w.lawyerA1.id, w.lawyerA2.id]);
+    actAs(w.lawyerA1.client, w.orgA);
+    await localeActions.setLocaleAction(form({ locale: "ro", id: w.lawyerA2.id, userId: w.lawyerA2.id }));
+    expect(state.cookieJar.get("dosaria_locale")).toBe("ro");
+
+    await localeActions.setLocaleAction(form({ locale: "de" }));
+    expect(state.cookieJar.get("dosaria_locale")).toBe("ro");
+
+    const { data } = await adminClient().from("profiles").select("id, preferred_locale").in("id", [w.lawyerA1.id, w.lawyerA2.id]);
+    expect(data!.find((p) => p.id === w.lawyerA1.id)!.preferred_locale).toBe("ro");
+    expect(data!.find((p) => p.id === w.lawyerA2.id)!.preferred_locale).toBeNull();
+  });
+
+  it("setLocaleAction works for anonymous visitors (cookie only)", async () => {
+    actAs(null);
+    await localeActions.setLocaleAction(form({ locale: "ro" }));
+    expect(state.cookieJar.get("dosaria_locale")).toBe("ro");
+  });
+
+  it("loginAction restores the saved language, or saves the current one when none is stored", async () => {
+    await adminClient().from("profiles").update({ preferred_locale: "ro" }).eq("id", w.lawyerB1.id);
+    actAs(anonClient());
+    expect(await run(() => authActions.loginAction(null, form({ email: w.lawyerB1.email, password: TEST_PASSWORD })))).toEqual({
+      redirect: "/dashboard",
+    });
+    expect(state.cookieJar.get("dosaria_locale")).toBe("ro");
+
+    await adminClient().from("profiles").update({ preferred_locale: null }).eq("id", w.adminB.id);
+    actAs(anonClient());
+    expect(await run(() => authActions.loginAction(null, form({ email: w.adminB.email, password: TEST_PASSWORD })))).toEqual({
+      redirect: "/dashboard",
+    });
+    const { data } = await adminClient().from("profiles").select("preferred_locale").eq("id", w.adminB.id).single();
+    expect(data!.preferred_locale).toBe("en");
   });
 });

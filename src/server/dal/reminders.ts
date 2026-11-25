@@ -66,11 +66,11 @@ export async function getUpcomingConfirmedReminders(ctx: AuthContext, days = 60)
 
 export async function createReminder(ctx: AuthContext, caseId: string, input: unknown): Promise<ActionResult<{ id: string }>> {
   const parsed = createReminderSchema.safeParse(input);
-  if (!parsed.success) return fail("validation", undefined, fieldErrorsOf(parsed.error));
+  if (!parsed.success) return fail(ctx.t, "validation", undefined, fieldErrorsOf(parsed.error, ctx.t));
 
   const c = await getAuthorizedCase(ctx, caseId);
-  if (!c) return fail("not_found");
-  if (!canEditCase(ctx, c)) return fail("forbidden", "Doar avocatul alocat sau un administrator poate adăuga termene.");
+  if (!c) return fail(ctx.t, "not_found");
+  if (!canEditCase(ctx, c)) return fail(ctx.t, "forbidden", ctx.t.errors.onlyAssignedAddsReminders);
 
   const { data, error } = await ctx.supabase
     .from("deadline_reminders")
@@ -88,7 +88,7 @@ export async function createReminder(ctx: AuthContext, caseId: string, input: un
     .single();
   if (error) {
     logServerError("createReminder", error);
-    return fail(classifyDbError(error));
+    return fail(ctx.t, classifyDbError(error));
   }
   return { ok: true, data: { id: data.id } };
 }
@@ -108,7 +108,7 @@ const NEXT_STATUS: Record<(typeof reminderActionSchema.shape.action.options)[num
  */
 export async function changeReminderStatus(ctx: AuthContext, input: unknown): Promise<ActionResult> {
   const parsed = reminderActionSchema.safeParse(input);
-  if (!parsed.success) return fail("validation", undefined, fieldErrorsOf(parsed.error));
+  if (!parsed.success) return fail(ctx.t, "validation", undefined, fieldErrorsOf(parsed.error, ctx.t));
 
   const { data: reminder, error: readError } = await ctx.supabase
     .from("deadline_reminders")
@@ -117,15 +117,15 @@ export async function changeReminderStatus(ctx: AuthContext, input: unknown): Pr
     .maybeSingle();
   if (readError) {
     logServerError("changeReminderStatus.read", readError);
-    return fail("internal");
+    return fail(ctx.t, "internal");
   }
-  if (!reminder) return fail("not_found");
+  if (!reminder) return fail(ctx.t, "not_found");
 
   const c = await getAuthorizedCase(ctx, reminder.case_id);
-  if (!c) return fail("not_found");
+  if (!c) return fail(ctx.t, "not_found");
   const role = roleIn(ctx, c.organization_id);
   if (!canEditCase(ctx, c) || (role !== "admin" && role !== "lawyer")) {
-    return fail("forbidden", "Doar avocatul alocat sau un administrator poate confirma ori finaliza termene.");
+    return fail(ctx.t, "forbidden", ctx.t.errors.onlyAssignedConfirms);
   }
 
   const { data, error } = await ctx.supabase
@@ -136,11 +136,11 @@ export async function changeReminderStatus(ctx: AuthContext, input: unknown): Pr
     .maybeSingle();
   if (error) {
     const code = classifyDbError(error);
-    if (code === "validation") return fail("validation", "Tranziția de stare nu este permisă.");
+    if (code === "validation") return fail(ctx.t, "validation", ctx.t.errors.transitionNotAllowed);
     logServerError("changeReminderStatus", error);
-    return fail(code);
+    return fail(ctx.t, code);
   }
-  if (!data) return fail("forbidden");
+  if (!data) return fail(ctx.t, "forbidden");
   return { ok: true };
 }
 
@@ -151,7 +151,7 @@ export function confirmDeadline(ctx: AuthContext, reminderId: string) {
 
 export async function deleteReminder(ctx: AuthContext, reminderId: string): Promise<ActionResult> {
   const id = uuid.safeParse(reminderId);
-  if (!id.success) return fail("validation");
+  if (!id.success) return fail(ctx.t, "validation");
   const { data, error } = await ctx.supabase
     .from("deadline_reminders")
     .delete()
@@ -160,8 +160,8 @@ export async function deleteReminder(ctx: AuthContext, reminderId: string): Prom
     .select("id");
   if (error) {
     logServerError("deleteReminder", error);
-    return fail(classifyDbError(error));
+    return fail(ctx.t, classifyDbError(error));
   }
-  if (!data || data.length === 0) return fail("not_found", "Doar termenele neconfirmate pot fi șterse.");
+  if (!data || data.length === 0) return fail(ctx.t, "not_found", ctx.t.errors.onlyUnconfirmedDeletable);
   return { ok: true };
 }

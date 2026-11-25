@@ -1,3 +1,4 @@
+import { courtTermInline } from "@/i18n/court-terms";
 import type { DetectedEvent } from "@/server/monitoring/diff";
 import type { EventSummary, SummaryProvider } from "./types";
 
@@ -17,6 +18,11 @@ function quote(text: string | null | undefined, max = 280): string | null {
   return clean.length > max ? `${clean.slice(0, max - 1)}…` : clean;
 }
 
+/** English text keeps the court's original term next to the gloss: "First instance (Fond)". */
+function enTerm(text: string | null | undefined): string | null {
+  return courtTermInline(text, "en");
+}
+
 export function summarizeDeterministically(event: DetectedEvent): Omit<EventSummary, "source"> {
   const d = event.details;
   switch (event.type) {
@@ -25,7 +31,7 @@ export function summarizeDeterministically(event: DetectedEvent): Omit<EventSumm
       const en = fmt(enDate, d.next_hearing_date);
       return {
         ro: `Monitorizarea dosarului a început. Stadiu procesual: ${d.stage ?? "necunoscut"}; stare: ${d.status ?? "necunoscută"}.${ro ? ` Următorul termen de judecată afișat: ${ro}.` : " Nu este afișat niciun termen viitor."}`,
-        en: `Monitoring of this case has started. Procedural stage: ${d.stage ?? "unknown"}; status: ${d.status ?? "unknown"}.${en ? ` Next hearing shown: ${en}.` : " No upcoming hearing is shown."}`,
+        en: `Monitoring of this case has started. Procedural stage: ${enTerm(d.stage) ?? "unknown"}; status: ${enTerm(d.status) ?? "unknown"}.${en ? ` Next hearing shown: ${en}.` : " No upcoming hearing is shown."}`,
       };
     }
     case "hearing_rescheduled": {
@@ -78,12 +84,12 @@ export function summarizeDeterministically(event: DetectedEvent): Omit<EventSumm
     case "status_changed":
       return {
         ro: `Starea dosarului s-a schimbat din „${quote(d.from, 100)}” în „${quote(d.to, 100)}”.`,
-        en: `The case status changed from "${quote(d.from, 100)}" to "${quote(d.to, 100)}".`,
+        en: `The case status changed from "${quote(enTerm(d.from), 140)}" to "${quote(enTerm(d.to), 140)}".`,
       };
     case "stage_changed":
       return {
         ro: `Stadiul procesual s-a schimbat din „${quote(d.from, 100)}” în „${quote(d.to, 100)}”.`,
-        en: `The procedural stage changed from "${quote(d.from, 100)}" to "${quote(d.to, 100)}".`,
+        en: `The procedural stage changed from "${quote(enTerm(d.from), 140)}" to "${quote(enTerm(d.to), 140)}".`,
       };
   }
 }

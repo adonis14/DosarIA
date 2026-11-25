@@ -106,13 +106,13 @@ export function canEditCase(ctx: AuthContext, c: Pick<CaseRow, "organization_id"
 }
 
 export async function createCase(ctx: AuthContext, input: unknown): Promise<ActionResult<{ id: string }>> {
-  if (!ctx.activeOrg) return fail("forbidden");
+  if (!ctx.activeOrg) return fail(ctx.t, "forbidden");
   const parsed = createCaseSchema.safeParse(input);
-  if (!parsed.success) return fail("validation", undefined, fieldErrorsOf(parsed.error));
+  if (!parsed.success) return fail(ctx.t, "validation", undefined, fieldErrorsOf(parsed.error, ctx.t));
 
   const orgId = ctx.activeOrg.organizationId;
   const role = roleIn(ctx, orgId);
-  if (role !== "admin" && role !== "lawyer") return fail("forbidden", "Asistenții nu pot crea dosare.");
+  if (role !== "admin" && role !== "lawyer") return fail(ctx.t, "forbidden", ctx.t.errors.assistantsCannotCreateCases);
 
   // Lawyers can only create cases assigned to themselves; assignment of
   // others is an admin-only operation (also enforced by RLS).
@@ -136,20 +136,20 @@ export async function createCase(ctx: AuthContext, input: unknown): Promise<Acti
 
   if (error) {
     const code = classifyDbError(error);
-    if (code === "conflict") return fail("conflict", "Acest dosar este deja monitorizat în organizație.");
+    if (code === "conflict") return fail(ctx.t, "conflict", ctx.t.errors.caseAlreadyMonitored);
     if (code !== "validation") logServerError("createCase", error);
-    return fail(code);
+    return fail(ctx.t, code);
   }
   return { ok: true, data: { id: data.id } };
 }
 
 export async function updateCase(ctx: AuthContext, caseId: string, input: unknown): Promise<ActionResult> {
   const parsed = updateCaseSchema.safeParse(input);
-  if (!parsed.success) return fail("validation", undefined, fieldErrorsOf(parsed.error));
+  if (!parsed.success) return fail(ctx.t, "validation", undefined, fieldErrorsOf(parsed.error, ctx.t));
 
   const existing = await getAuthorizedCase(ctx, caseId);
-  if (!existing) return fail("not_found");
-  if (!canEditCase(ctx, existing)) return fail("forbidden");
+  if (!existing) return fail(ctx.t, "not_found");
+  if (!canEditCase(ctx, existing)) return fail(ctx.t, "forbidden");
 
   // Only these columns are written; protected columns are never part of the payload.
   const { data, error } = await ctx.supabase
@@ -167,18 +167,18 @@ export async function updateCase(ctx: AuthContext, caseId: string, input: unknow
 
   if (error) {
     const code = classifyDbError(error);
-    if (code === "conflict") return fail("conflict", "Un dosar activ cu acest număr există deja.");
+    if (code === "conflict") return fail(ctx.t, "conflict", ctx.t.errors.activeCaseNumberExists);
     logServerError("updateCase", error);
-    return fail(code);
+    return fail(ctx.t, code);
   }
-  if (!data) return fail("forbidden");
+  if (!data) return fail(ctx.t, "forbidden");
   return { ok: true };
 }
 
 export async function archiveCase(ctx: AuthContext, caseId: string): Promise<ActionResult> {
   const existing = await getAuthorizedCase(ctx, caseId);
-  if (!existing) return fail("not_found");
-  if (!canEditCase(ctx, existing)) return fail("forbidden");
+  if (!existing) return fail(ctx.t, "not_found");
+  if (!canEditCase(ctx, existing)) return fail(ctx.t, "forbidden");
   const { data, error } = await ctx.supabase
     .from("cases")
     .update({ status: "archived" })
@@ -187,7 +187,7 @@ export async function archiveCase(ctx: AuthContext, caseId: string): Promise<Act
     .maybeSingle();
   if (error || !data) {
     if (error) logServerError("archiveCase", error);
-    return fail(error ? classifyDbError(error) : "forbidden");
+    return fail(ctx.t, error ? classifyDbError(error) : "forbidden");
   }
   return { ok: true };
 }
@@ -195,10 +195,10 @@ export async function archiveCase(ctx: AuthContext, caseId: string): Promise<Act
 /** Admin-only: change the responsible lawyer and/or assistant. */
 export async function assignCase(ctx: AuthContext, caseId: string, input: unknown): Promise<ActionResult> {
   const parsed = assignCaseSchema.safeParse(input);
-  if (!parsed.success) return fail("validation", undefined, fieldErrorsOf(parsed.error));
+  if (!parsed.success) return fail(ctx.t, "validation", undefined, fieldErrorsOf(parsed.error, ctx.t));
 
   const existing = await getAuthorizedCase(ctx, caseId);
-  if (!existing) return fail("not_found");
+  if (!existing) return fail(ctx.t, "not_found");
   if (!isAdminOf(ctx, existing.organization_id)) {
     await logSecurityEvent(ctx, {
       action: "security.assignment_denied",
@@ -206,7 +206,7 @@ export async function assignCase(ctx: AuthContext, caseId: string, input: unknow
       resourceId: existing.id,
       organizationId: existing.organization_id,
     });
-    return fail("forbidden", "Doar un administrator poate modifica alocarea dosarului.");
+    return fail(ctx.t, "forbidden", ctx.t.errors.onlyAdminAssigns);
   }
 
   const { data, error } = await ctx.supabase
@@ -222,11 +222,11 @@ export async function assignCase(ctx: AuthContext, caseId: string, input: unknow
   if (error) {
     const code = classifyDbError(error);
     if (code === "validation") {
-      return fail("validation", "Persoana selectată nu este un membru activ cu rolul potrivit în această organizație.");
+      return fail(ctx.t, "validation", ctx.t.errors.invalidAssignee);
     }
     logServerError("assignCase", error);
-    return fail(code);
+    return fail(ctx.t, code);
   }
-  if (!data) return fail("forbidden");
+  if (!data) return fail(ctx.t, "forbidden");
   return { ok: true };
 }

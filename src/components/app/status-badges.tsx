@@ -1,13 +1,7 @@
 import { AlertTriangle, CheckCircle2, CircleDashed, CircleSlash, Clock, Sparkles, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import {
-  CASE_STATUS_LABELS,
-  CHECK_OUTCOME_LABELS,
-  REMINDER_ORIGIN_LABELS,
-  REMINDER_STATUS_LABELS,
-  ROLE_LABELS,
-  label,
-} from "@/lib/labels";
+import { label } from "@/i18n";
+import { getT } from "@/i18n/server";
 import { cn } from "@/lib/utils";
 
 const tone = {
@@ -18,7 +12,7 @@ const tone = {
   danger: "border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200",
 };
 
-export function CheckOutcomeBadge({ outcome, className }: { outcome: string; className?: string }) {
+export async function CheckOutcomeBadge({ outcome, className }: { outcome: string; className?: string }) {
   const map: Record<string, { t: keyof typeof tone; Icon: typeof Clock }> = {
     never_checked: { t: "neutral", Icon: CircleDashed },
     changes_detected: { t: "info", Icon: Sparkles },
@@ -27,46 +21,51 @@ export function CheckOutcomeBadge({ outcome, className }: { outcome: string; cla
     incomplete: { t: "warning", Icon: AlertTriangle },
     source_unavailable: { t: "danger", Icon: CircleSlash },
   };
-  const { t, Icon } = map[outcome] ?? map.never_checked;
+  const { t: toneKey, Icon } = map[outcome] ?? map.never_checked;
+  const t = await getT();
   return (
-    <Badge variant="outline" className={cn(tone[t], className)}>
+    <Badge variant="outline" className={cn(tone[toneKey], className)}>
       <Icon aria-hidden />
-      {label(CHECK_OUTCOME_LABELS, outcome)}
+      {label(t.labels.checkOutcome, outcome)}
     </Badge>
   );
 }
 
-export function ReminderStatusBadge({ status }: { status: string }) {
-  const t: keyof typeof tone =
+export async function ReminderStatusBadge({ status }: { status: string }) {
+  const t = await getT();
+  const toneKey: keyof typeof tone =
     status === "confirmed" ? "success" : status === "needs_review" ? "warning" : status === "completed" ? "neutral" : "info";
   return (
-    <Badge variant="outline" className={tone[t]}>
-      {label(REMINDER_STATUS_LABELS, status)}
+    <Badge variant="outline" className={tone[toneKey]}>
+      {label(t.labels.reminderStatus, status)}
     </Badge>
   );
 }
 
-export function ReminderOriginBadge({ origin }: { origin: string }) {
+export async function ReminderOriginBadge({ origin }: { origin: string }) {
+  const t = await getT();
   return (
     <Badge variant="outline" className={origin === "suggested" ? tone.warning : tone.neutral}>
-      {label(REMINDER_ORIGIN_LABELS, origin)}
+      {label(t.labels.reminderOrigin, origin)}
     </Badge>
   );
 }
 
-export function CaseStatusBadge({ status }: { status: string }) {
-  const t: keyof typeof tone = status === "active" ? "success" : "neutral";
+export async function CaseStatusBadge({ status }: { status: string }) {
+  const t = await getT();
+  const toneKey: keyof typeof tone = status === "active" ? "success" : "neutral";
   return (
-    <Badge variant="outline" className={tone[t]}>
-      {label(CASE_STATUS_LABELS, status)}
+    <Badge variant="outline" className={tone[toneKey]}>
+      {label(t.labels.caseStatus, status)}
     </Badge>
   );
 }
 
-export function RoleBadge({ role }: { role: string }) {
+export async function RoleBadge({ role }: { role: string }) {
+  const t = await getT();
   return (
     <Badge variant="outline" className={role === "admin" ? tone.info : tone.neutral}>
-      {label(ROLE_LABELS, role)}
+      {label(t.labels.roles, role)}
     </Badge>
   );
 }

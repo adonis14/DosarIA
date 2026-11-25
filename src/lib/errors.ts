@@ -1,7 +1,9 @@
+import type { Dictionary } from "@/i18n";
+
 /**
- * Sanitized errors. Users see a short, generic Romanian message; server logs
- * get an error code and context label only — never request payloads,
- * credentials, tokens or case contents.
+ * Sanitized errors. Users see a short, generic message in their interface
+ * language; server logs get an error code and context label only — never
+ * request payloads, credentials, tokens or case contents.
  */
 
 export type ActionResult<T = undefined> =
@@ -18,19 +20,14 @@ export type AppErrorCode =
   | "provider_failed"
   | "internal";
 
-export const MESSAGES: Record<AppErrorCode, string> = {
-  unauthenticated: "Sesiunea a expirat. Autentificați-vă din nou.",
-  forbidden: "Nu aveți permisiunea de a efectua această operațiune.",
-  not_found: "Resursa nu a fost găsită sau nu aveți acces la ea.",
-  validation: "Datele introduse nu sunt valide.",
-  conflict: "Operațiunea intră în conflict cu datele existente.",
-  rate_limited: "Prea multe încercări. Așteptați puțin și încercați din nou.",
-  provider_failed: "Verificarea sursei a eșuat.",
-  internal: "A apărut o eroare neașteptată. Încercați din nou.",
-};
-
-export function fail(code: AppErrorCode, error?: string, fieldErrors?: Record<string, string[]>): ActionResult<never> {
-  return { ok: false, code, error: error ?? MESSAGES[code], ...(fieldErrors ? { fieldErrors } : {}) };
+/** Build a failed result; without a specific message, the generic message for `code` is used. */
+export function fail(
+  t: Dictionary,
+  code: AppErrorCode,
+  error?: string,
+  fieldErrors?: Record<string, string[]>,
+): ActionResult<never> {
+  return { ok: false, code, error: error ?? t.errors.codes[code], ...(fieldErrors ? { fieldErrors } : {}) };
 }
 
 type PgLikeError = { code?: string | null; message?: string | null } | null | undefined;
