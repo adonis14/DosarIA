@@ -54,7 +54,7 @@ Legend: ✅ done and verified · 🔒 blocked by an external dependency · ⚠�
 2. Retention and pruning jobs (snapshots, runs, audit), plus the export/erasure UI. The database functions already exist.
 3. Independent penetration test of staging; fix findings.
 4. Incident response and breach-notification runbook; backup restore rehearsal.
-5. Notifications: in-app first, then transactional email via an EU provider.
+5. Notifications: **in-app built** (per person: assigned lawyer, assistant and opt-in followers only; personal settings; deadline alerts always on). Still to do: transactional email via an EU provider, and a retention job for old notifications.
 6. Production environment, a copy of staging with a separate project and keys.
 
 ## Phase D: requires explicit approval ⚠️

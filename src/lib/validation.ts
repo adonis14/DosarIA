@@ -132,6 +132,18 @@ export const createReminderSchema = z
 export const REMINDER_ACTIONS = ["confirm", "complete", "reopen", "flag", "unflag"] as const;
 export const reminderActionSchema = z.object({ reminderId: uuid, action: z.enum(REMINDER_ACTIONS) }).strict();
 
+/** Alert settings: unticked checkboxes are absent from the form. Deadline alerts have no setting. */
+export const notificationPreferencesSchema = z
+  .object({ courtUpdates: z.literal("on").optional(), checkProblems: z.literal("on").optional() })
+  .strict()
+  .transform((v) => ({ courtUpdates: v.courtUpdates === "on", checkProblems: v.checkProblems === "on" }));
+
+/** Mark one notification (by id) or all of them as read. */
+export const markNotificationsReadSchema = z
+  .object({ notificationId: uuid.optional(), scope: z.literal("all").optional() })
+  .strict()
+  .refine((v) => (v.notificationId === undefined) !== (v.scope === undefined), msg("invalidId"));
+
 /** FormData → plain object (single values only; files rejected). */
 export function formToObject(formData: FormData, keys: readonly string[]): Record<string, string> {
   const out: Record<string, string> = {};

@@ -19,6 +19,7 @@ export const ro: Dictionary = {
     profile: "Profil",
     onboarding: "Bun venit",
     invite: "Invitație",
+    notifications: "Notificări",
   },
 
   language: {
@@ -112,6 +113,8 @@ export const ro: Dictionary = {
     activeOrganization: "Organizație activă",
     switchOrganization: "Schimbă",
     logout: "Ieșire",
+    notifications: "Notificări",
+    unreadCount: (count: number) => `${count} necitite`,
   },
 
   footer: {
@@ -253,6 +256,48 @@ export const ro: Dictionary = {
     delete: "Șterge",
     suggestedReminderTitle: "Termen de judecată (sugerat din sursă)",
     suggestedReminderDescription: "Dată preluată automat din sursa monitorizată. Verificați și confirmați manual.",
+    alertsLabel: "Alertele dvs.",
+    alertsAssigned: "Primiți alerte pentru acest dosar deoarece vă este atribuit.",
+    alertsFollowing: "Urmăriți acest dosar și primiți alertele lui.",
+    alertsNotFollowing: "Nu primiți alerte pentru acest dosar.",
+    follow: "Urmăriți dosarul",
+    unfollow: "Nu mai urmăriți",
+  },
+
+  notifications: {
+    title: "Notificări",
+    description: "Alerte pentru dosarele atribuite dvs. și pentru dosarele pe care le urmăriți. Dosarele colegilor nu sunt incluse.",
+    markAllRead: "Marcați toate ca citite",
+    markRead: "Marcați ca citită",
+    unread: "Necitită",
+    empty: "Nicio notificare deocamdată",
+    emptyHint: "Veți fi anunțat aici când se schimbă ceva într-un dosar atribuit dvs. sau pe care îl urmăriți.",
+    deadlinesTitle: "Termenele dvs.",
+    deadlinesDescription:
+      "Termene confirmate din dosarele dvs., depășite sau care expiră în următoarele 7 zile. Aceste alerte nu pot fi dezactivate.",
+    deadlinesEmpty: "Niciun termen confirmat în următoarele 7 zile.",
+    overdue: "Depășit",
+    dueToday: "Astăzi",
+    kind: {
+      court_update: "Actualizare de la instanță",
+      check_problem: "Problemă la verificare",
+      reminder_added: "Termen",
+      reminder_needs_review: "Termen de reverificat",
+      case_assigned: "Atribuit dvs.",
+    } as Record<string, string>,
+    checkProblem: (outcome: string) =>
+      `Verificările pentru acest dosar nu funcționează (${outcome}). Consultați dosarul pe portalul instanțelor până când funcționează din nou.`,
+    reminderSuggested: (title: string, date: string) => `Dată sugerată din datele instanței, de confirmat: ${title} · ${date}`,
+    reminderAdded: (title: string, date: string) => `Termen adăugat: ${title} · ${date}`,
+    reminderNeedsReview: (title: string, date: string) => `Acest termen trebuie reverificat: ${title} · ${date}`,
+    caseAssigned: "Acest dosar v-a fost atribuit.",
+    unavailable: "Detaliile nu mai sunt disponibile.",
+    settingsTitle: "Setări alerte",
+    settingsDescription: "Setările dvs., doar pentru această organizație. Nu modifică alertele altor persoane.",
+    courtUpdates: "Actualizări noi de la instanță în dosarele mele",
+    checkProblems: "Probleme la verificarea dosarelor mele",
+    alwaysOn: "Alertele de termen și atribuirile noi sunt întotdeauna active.",
+    save: "Salvați setările",
   },
 
   settings: {
@@ -405,6 +450,9 @@ export const ro: Dictionary = {
       "security.case_access_denied": "Acces refuzat la dosar",
       "security.assignment_denied": "Alocare refuzată",
       "security.role_change_denied": "Schimbare de rol refuzată",
+      "case.followed": "Dosar urmărit",
+      "case.unfollowed": "Dosar care nu mai este urmărit",
+      "notification.preferences_changed": "Setări de alertă modificate",
     },
   },
 
@@ -458,6 +506,7 @@ export const ro: Dictionary = {
     statusUpdated: "Statutul a fost actualizat.",
     profileUpdated: "Profilul a fost actualizat.",
     reminderAdded: "Termenul a fost adăugat cu statutul „Propus”. Confirmați-l după verificare.",
+    alertSettingsSaved: "Setările de alertă au fost salvate.",
   },
 
   monitoring: {

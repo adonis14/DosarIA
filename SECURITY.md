@@ -61,6 +61,12 @@ ownership audit query.
   returns counts only, never case data. It uses no cookies or session. In
   production, also restrict it at the network level (only the cron caller) and
   keep the secret in the host's secret store.
+- **Notifications**: created only by database triggers. A person sees only
+  their own, and only while they can still read the case (RLS). The only
+  writable field is `read_at`, and the server sets its value. A notification
+  stores references (case, event, reminder), not copies of case content. Alerts
+  go to the case's assigned lawyer and assistant and to opt-in followers who
+  can read the case, never to the whole firm.
 - **CSRF**: mutations are Server Actions only (POST). Next.js checks
   `Origin` against `Host`, and `SameSite=Lax` cookies add a second layer. The
   only GET route handler (`/auth/confirm`) consumes single-use tokens and
@@ -160,6 +166,7 @@ never shown to that tenant.
   |---|---|
   | Cases and their events, snapshots, reminders | While the case is active, plus a firm-defined period after archiving (e.g. 5 years, aligned with professional-record obligations), then deletion |
   | `monitoring_runs` | 12 months |
+  | `notifications` | 12 months (proposal; references only, no copied case content) |
   | `case_snapshots` | Latest complete one + those referenced by events; older ones pruned after 12 months |
   | `audit_logs` | 24 months, or as the DPA requires |
   | Accounts | Deleted on request or 30 days after the contract ends |

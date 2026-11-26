@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LogOut, Scale } from "lucide-react";
+import { Bell, LogOut, Scale } from "lucide-react";
 import { logoutAction } from "@/app/actions/auth";
 import { switchOrganizationAction } from "@/app/actions/organization";
 import { LanguageSwitcher } from "@/components/app/language-switcher";
@@ -7,6 +7,7 @@ import { RoleBadge } from "@/components/app/status-badges";
 import { Button } from "@/components/ui/button";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { requirePageContext } from "@/server/context";
+import { getUnreadNotificationCount } from "@/server/dal/notifications";
 
 // Every page below is private and per-user: always render on the server per request.
 export const dynamic = "force-dynamic";
@@ -15,6 +16,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   const ctx = await requirePageContext();
   const { t } = ctx;
   const isAdmin = ctx.activeOrg?.role === "admin";
+  const unread = await getUnreadNotificationCount(ctx);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -34,6 +36,23 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
               </Link>
               <Link href="/settings" className="text-muted-foreground hover:text-foreground">
                 {isAdmin ? t.nav.organization : t.nav.team}
+              </Link>
+              <Link
+                href="/notifications"
+                className="flex items-center gap-1 text-muted-foreground hover:text-foreground"
+                data-testid="notifications-link"
+              >
+                <Bell className="size-4" aria-hidden />
+                {t.nav.notifications}
+                {unread > 0 && (
+                  <span
+                    className="rounded-full bg-primary px-1.5 text-xs font-medium text-primary-foreground"
+                    data-testid="unread-count"
+                    aria-label={t.nav.unreadCount(unread)}
+                  >
+                    {unread > 99 ? "99+" : unread}
+                  </span>
+                )}
               </Link>
             </nav>
           )}

@@ -5,6 +5,7 @@ import { label } from "@/i18n";
 import { getT } from "@/i18n/server";
 import { fail, type ActionResult } from "@/lib/errors";
 import { getAuthContext } from "@/server/context";
+import { markCaseNotificationsRead } from "@/server/dal/notifications";
 import { checkCaseForUpdates } from "@/server/monitoring/check-case";
 
 export async function checkCaseAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
@@ -15,7 +16,10 @@ export async function checkCaseAction(_prev: ActionResult | null, formData: Form
 
   const result = await checkCaseForUpdates(ctx, caseId);
   if (!result.ok) return result;
-  revalidatePath(`/cases/${caseId}`);
+  // The person who pressed "Check now" sees the result right here; their own
+  // alerts for this case are therefore already read.
+  await markCaseNotificationsRead(ctx, caseId);
+  revalidatePath("/", "layout");
 
   const { outcome, eventsCreated, errorCode } = result.data!;
   const headline = t.labels.checkOutcome[outcome];

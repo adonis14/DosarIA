@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Archive, Info, Pencil, RefreshCw } from "lucide-react";
 import { archiveCaseAction, assignCaseAction } from "@/app/actions/cases";
 import { checkCaseAction } from "@/app/actions/monitoring";
+import { followCaseAction } from "@/app/actions/notifications";
 import { createReminderAction, deleteReminderAction, reminderStatusAction } from "@/app/actions/reminders";
 import { ActionForm, FieldError, SubmitButton } from "@/components/app/action-form";
 import { CourtText } from "@/components/app/court-text";
@@ -30,6 +31,7 @@ import { displayReminderText } from "@/lib/suggested-reminder";
 import { isAdminOf, requireOrgPageContext, roleIn } from "@/server/context";
 import { canEditCase, getAuthorizedCase } from "@/server/dal/cases";
 import { getAuthorizedCaseEvents, getCaseCheckSchedule, getCaseMonitoringRuns, type CheckScheduleRow } from "@/server/dal/events";
+import { getCaseAlertStatus } from "@/server/dal/notifications";
 import { listMembers } from "@/server/dal/organizations";
 import { getCaseReminders, type ReminderRow } from "@/server/dal/reminders";
 
@@ -45,12 +47,13 @@ export default async function CaseDetailPage({ params }: PageProps<"/cases/[case
   // Same response for "does not exist" and "not yours".
   if (!c) notFound();
 
-  const [events, runs, schedule, reminders, members] = await Promise.all([
+  const [events, runs, schedule, reminders, members, alerts] = await Promise.all([
     getAuthorizedCaseEvents(ctx, c.id),
     getCaseMonitoringRuns(ctx, c.id),
     getCaseCheckSchedule(ctx, c.id),
     getCaseReminders(ctx, c.id),
     listMembers(ctx, c.organization_id),
+    getCaseAlertStatus(ctx, c),
   ]);
 
   const role = roleIn(ctx, c.organization_id);
@@ -181,6 +184,25 @@ export default async function CaseDetailPage({ params }: PageProps<"/cases/[case
             <div>
               <p className="text-muted-foreground">{t.caseDetail.assistant}</p>
               <p className="font-medium">{c.assigned_assistant_id ? nameOf.get(c.assigned_assistant_id) ?? "—" : "—"}</p>
+            </div>
+            <div className="grid gap-2 border-t pt-3" data-testid="case-alerts" data-status={alerts}>
+              <p className="text-muted-foreground">{t.caseDetail.alertsLabel}</p>
+              <p>
+                {alerts === "assigned"
+                  ? t.caseDetail.alertsAssigned
+                  : alerts === "following"
+                    ? t.caseDetail.alertsFollowing
+                    : t.caseDetail.alertsNotFollowing}
+              </p>
+              {alerts !== "assigned" && (!archived || alerts === "following") && (
+                <ActionForm action={followCaseAction} showSuccess={false}>
+                  <input type="hidden" name="caseId" value={c.id} />
+                  <input type="hidden" name="follow" value={alerts === "following" ? "off" : "on"} />
+                  <SubmitButton size="sm" variant="outline">
+                    {alerts === "following" ? t.caseDetail.unfollow : t.caseDetail.follow}
+                  </SubmitButton>
+                </ActionForm>
+              )}
             </div>
             {isAdmin && (
               <ActionForm action={assignCaseAction} className="grid gap-2 border-t pt-3">

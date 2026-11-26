@@ -71,6 +71,32 @@ isOneToOne: false
       referencedColumns: ["case_id","id"]
     }
                   ]
+                },"case_followers": {
+                  Row: {
+                    "case_id": string,"created_at": string,"organization_id": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "case_id": string,"created_at"?: string,"organization_id": string,"user_id": string
+                  }
+                  Update: {
+                    "case_id"?: string,"created_at"?: string,"organization_id"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "case_followers_case_fk"
+      columns: ["organization_id","case_id"]
+isOneToOne: false
+      referencedRelation: "cases"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "case_followers_member_fk"
+      columns: ["organization_id","user_id"]
+isOneToOne: false
+      referencedRelation: "organization_memberships"
+      referencedColumns: ["organization_id","user_id"]
+    }
+                  ]
                 },"case_snapshots": {
                   Row: {
                     "case_id": string,"completeness": string,"content_hash": string,"created_at": string,"data": NonNullable<Json>,"fetched_at": string,"id": string,"organization_id": string,"provider": string,"source_reference": string | null
@@ -205,6 +231,64 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"notification_preferences": {
+                  Row: {
+                    "check_problems": boolean,"court_updates": boolean,"organization_id": string,"updated_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "check_problems"?: boolean,"court_updates"?: boolean,"organization_id": string,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "check_problems"?: boolean,"court_updates"?: boolean,"organization_id"?: string,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "notification_preferences_member_fk"
+      columns: ["organization_id","user_id"]
+isOneToOne: true
+      referencedRelation: "organization_memberships"
+      referencedColumns: ["organization_id","user_id"]
+    }
+                  ]
+                },"notifications": {
+                  Row: {
+                    "case_id": string,"check_outcome": Database["public"]['Enums']["check_outcome"] | null,"created_at": string,"event_id": string | null,"id": string,"kind": string,"organization_id": string,"read_at": string | null,"reminder_id": string | null,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "case_id": string,"check_outcome"?: Database["public"]['Enums']["check_outcome"] | null,"created_at"?: string,"event_id"?: string | null,"id"?: string,"kind": string,"organization_id": string,"read_at"?: string | null,"reminder_id"?: string | null,"user_id": string
+                  }
+                  Update: {
+                    "case_id"?: string,"check_outcome"?: Database["public"]['Enums']["check_outcome"] | null,"created_at"?: string,"event_id"?: string | null,"id"?: string,"kind"?: string,"organization_id"?: string,"read_at"?: string | null,"reminder_id"?: string | null,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "notifications_case_fk"
+      columns: ["organization_id","case_id"]
+isOneToOne: false
+      referencedRelation: "cases"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "notifications_event_fk"
+      columns: ["case_id","event_id"]
+isOneToOne: false
+      referencedRelation: "case_events"
+      referencedColumns: ["case_id","id"]
+    },{
+      foreignKeyName: "notifications_member_fk"
+      columns: ["organization_id","user_id"]
+isOneToOne: false
+      referencedRelation: "organization_memberships"
+      referencedColumns: ["organization_id","user_id"]
+    },{
+      foreignKeyName: "notifications_reminder_fk"
+      columns: ["case_id","reminder_id"]
+isOneToOne: false
+      referencedRelation: "deadline_reminders"
+      referencedColumns: ["case_id","id"]
+    }
+                  ]
                 },"organization_invitations": {
                   Row: {
                     "accepted_at": string | null,"accepted_by": string | null,"created_at": string,"email": string,"expires_at": string,"id": string,"invited_by": string,"organization_id": string,"revoked_at": string | null,"role": Database["public"]['Enums']["membership_role"],"token_hash": string
@@ -313,6 +397,11 @@ isOneToOne: false
                            },
 "create_organization":
 { Args: { "p_name": string }; Returns: string
+                           },
+"my_upcoming_deadlines":
+{ Args: { "p_days"?: number,"p_organization_id": string }; Returns: {
+              "case_id": string,"case_title": string,"court_case_number": string,"description": string,"due_date": string,"id": string,"origin": Database["public"]['Enums']["reminder_origin"],"title": string
+            }[]
                            },
 "record_monitoring_run":
 { Args: { "p_case_id": string,"p_court_status"?: string,"p_error_code"?: string,"p_events"?: Json,"p_finished_at": string,"p_next_check_at"?: string,"p_next_check_reason"?: string,"p_organization_id": string,"p_outcome": Database["public"]['Enums']["check_outcome"],"p_provider": string,"p_snapshot"?: Json,"p_started_at": string,"p_trigger_type": string,"p_triggered_by": string }; Returns: Json

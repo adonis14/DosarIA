@@ -78,6 +78,9 @@ Migrations: `supabase/migrations/`.
 | `deadline_reminders` | `origin` (`manual` / `suggested`), `status` (`proposed` / `confirmed` / `completed` / `needs_review`), and who confirmed it and when. |
 | `monitoring_runs` | Every check attempt with its outcome, including failures. |
 | `audit_logs` | Append-only security and change history (minimal metadata). |
+| `notifications` | One row per recipient: `kind`, the case, and a reference to the event or reminder (no copy of case content), `read_at`. Created by triggers only. |
+| `notification_preferences` | Per person, per firm: `court_updates`, `check_problems` (both default on). Deadline alerts have no setting. |
+| `case_followers` | Opt-in: a person who can read a case chooses to get its alerts. |
 
 ### Cross-tenant integrity (enforced by the database)
 
@@ -120,6 +123,9 @@ operation. `anon` has no privileges on any table.
 | `monitoring_runs` | Readable case | ✗ | ✗ | ✗ | `record_monitoring_run` (service role only) |
 | `case_check_schedule` | Readable case | ✗ | ✗ | ✗ | `record_monitoring_run`, `claim_due_case_checks` (service role only) |
 | `deadline_reminders` | Readable case | Writable case. Always `origin = manual`, `status = proposed`; `created_by` forced. | Writable case: `title`, `description`, `due_date`, `status`. Transitions are validated. Confirmation requires an authenticated admin or lawyer, and records `confirmed_by` / `confirmed_at` server-side. Editing a confirmed date voids the confirmation. | Writable case, only while `proposed` / `needs_review` | `record_monitoring_run` may add `suggested` / `proposed` reminders and set `needs_review`. It can **never** confirm. |
+| `notifications` | Own rows, on a readable case only (losing access to the case hides its notifications) | ✗ (triggers only) | Own rows, `read_at` only; the time is set by the server | ✗ (removed with the case, event, reminder or membership) | Triggers on `case_events`, `deadline_reminders`, `cases` |
+| `notification_preferences` | Own rows | Own row, in an organization where the caller is a member | Own row: `court_updates`, `check_problems` | ✗ | — |
+| `case_followers` | Own rows | Self, on a readable case | ✗ | Own rows | — |
 | `audit_logs` | Admins of that organization | ✗ (triggers; service role for security events) | ✗ for everyone, including the service role | ✗ for everyone, except owner-only purge with an explicit flag | `private.write_audit`, `dal/audit.ts` |
 
 ### SECURITY DEFINER functions
@@ -290,6 +296,34 @@ rejects confirmation without an authenticated lawyer or admin. When a hearing
 moves, reminders dated on the old hearing date become `needs_review`. Only
 `confirmed` reminders appear in the dashboard's “Confirmed deadlines” (“Termene confirmate”).
 
+### Notifications
+
+Alerts go **only** to the people on the case: the assigned lawyer, the assigned
+assistant, and anyone who chose to follow it (opt-in, and only while they can
+still read the case). Colleagues and admins get nothing by default. This
+follows lawyer feedback that alerts about colleagues' files are noise.
+
+They are created in the database (triggers), so a manual check and a scheduled
+check behave the same, and `record_monitoring_run` is unchanged:
+
+| Kind | When | Can be switched off |
+|---|---|---|
+| `court_update` | A new court event is recorded | Yes (`court_updates`) |
+| `check_problem` | Checks go from working to failing (once, not on every retry) | Yes (`check_problems`) |
+| `reminder_added` | A deadline is added by someone else, or suggested from the court data | No |
+| `reminder_needs_review` | A deadline is flagged for review (e.g. the hearing moved) | No |
+| `case_assigned` | The case is assigned to you | No |
+
+- The person who made a change is not notified about it. The person who presses
+  “Check now” sees the result on screen, so their unread alerts for that case
+  are marked read.
+- Archived cases notify nobody.
+- `public.my_upcoming_deadlines(org, days)` (`SECURITY INVOKER`, so RLS applies)
+  lists the caller's own confirmed deadlines, overdue or due within 7 days, on
+  cases assigned to them or followed by them. The Notifications page always
+  shows it.
+- In-app only for now. Email delivery (through an EU provider) is future work.
+
 ## 8. Testing strategy
 
 | Layer | Location | Needs |
@@ -298,13 +332,15 @@ moves, reminders dated on the old hearing date become `needs_review`. Only
 | Direct DB/RLS: scenarios A–G, audit immutability (real JWTs via PostgREST) | `tests/integration/rls.test.ts` | local Supabase |
 | Server Action + Route Handler authorization (real DB; only the Next request boundary mocked) | `tests/integration/actions.test.ts` | local Supabase |
 | Monitoring pipeline, scenario H, deduplication, suggestions | `tests/integration/monitoring.test.ts` | local Supabase |
+| Scheduled checks: claim/lease, plans, endpoint auth | `tests/integration/scheduler.test.ts` | local Supabase |
+| Notifications: recipients, follows, settings, read state, isolation, my deadlines | `tests/integration/notifications.test.ts` | local Supabase |
 | End to end (production build): sign-up with email verification via Mailpit, reset, workflow, isolation by URL, headers, no secrets in bundles | `tests/e2e` | local Supabase + browser |
 
 ## 9. Future work (not implemented)
 
 - Live `PortalJustSoapProvider` after legal, terms-of-use and transport approval.
   Scheduled checks are built but off by default (see §5).
-- Email/in-app notifications, Google/Microsoft calendar sync.
+- Email delivery of notifications (in-app notifications are built), Google/Microsoft calendar sync.
 - A deterministic, lawyer-reviewed deadline rules engine.
 - MFA (TOTP) and SSO.
 - Shared-store rate limiting for multi-instance deployments.

@@ -129,6 +129,27 @@ can set it with `DEMO_PASSWORD=...`. To create additional users, sign up at
 5. **Account.** Sign-up with email verification, password reset (via Mailpit),
    logout and profile editing.
 
+## Notifications
+
+Each person gets alerts only for **their own cases**: the ones where they are
+the assigned lawyer or assistant, plus any case they choose to **follow** (the
+“Follow this case” button on the case page). Colleagues' cases send nothing.
+
+- The bell in the header shows the unread count. The **Notifications** page
+  lists alerts (new court updates, checks that stopped working, deadlines added
+  or flagged for review, new assignments) and **Your deadlines** (confirmed
+  deadlines that are overdue or due within 7 days).
+- **Alert settings** on the same page are personal, per firm: court updates
+  and check problems can be switched off. Deadline alerts cannot.
+- In-app only for now; email comes later.
+
+Try it with the demo users:
+1. Sign in as `avocat.a1`, open case **1234/3/2026** and press “Verifică actualizări”.
+2. Sign in as `asistent.a` (assigned to that case): the bell shows the new alert.
+   `avocat.a2` and `admin.a` get nothing for it.
+3. As `admin.a`, open that case and press “Urmăriți dosarul” (Follow this case).
+   After the next check, the admin gets its alerts too.
+
 ## Automatic checks (smart schedule)
 
 Off by default; cases are then checked only when someone presses the button.
@@ -241,7 +262,7 @@ directly.
 src/
   proxy.ts                    CSP nonce, session refresh, optimistic auth redirect
   app/(auth)/…                login, signup, forgot/update password, email landing pages
-  app/(app)/…                 dashboard, cases, case detail/edit, settings, profile, onboarding, invite
+  app/(app)/…                 dashboard, cases, case detail/edit, notifications, settings, profile, onboarding, invite
   app/actions/*               Server Actions (re-verify the session, whitelist inputs)
   app/auth/confirm/route.ts   email token verification
   server/context.ts           verified identity + memberships
@@ -251,7 +272,7 @@ src/
   i18n/                       EN/RO dictionaries, locale cookie, court-term glossary
   lib/                        env, Supabase clients, validation, errors, rate limit, labels
 supabase/
-  migrations/                 schema, RLS, guards/audit, RPCs
+  migrations/                 schema, RLS, guards/audit, RPCs, scheduled checks, notifications
   templates/                  Auth email templates
   config.jsonc                local stack configuration (hardened Auth settings)
 tests/                        unit, integration (DB/RLS/actions/monitoring), e2e

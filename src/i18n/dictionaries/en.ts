@@ -23,6 +23,7 @@ export const en = {
     profile: "Profile",
     onboarding: "Welcome",
     invite: "Invitation",
+    notifications: "Notifications",
   },
 
   language: {
@@ -116,6 +117,8 @@ export const en = {
     activeOrganization: "Active organization",
     switchOrganization: "Switch",
     logout: "Sign out",
+    notifications: "Notifications",
+    unreadCount: (count: number) => `${count} unread`,
   },
 
   footer: {
@@ -257,6 +260,48 @@ export const en = {
     delete: "Delete",
     suggestedReminderTitle: "Court hearing (suggested by the source)",
     suggestedReminderDescription: "Date taken automatically from the monitored source. Verify and confirm it manually.",
+    alertsLabel: "Your alerts",
+    alertsAssigned: "You get alerts for this case because it is assigned to you.",
+    alertsFollowing: "You follow this case and get its alerts.",
+    alertsNotFollowing: "You do not get alerts for this case.",
+    follow: "Follow this case",
+    unfollow: "Stop following",
+  },
+
+  notifications: {
+    title: "Notifications",
+    description: "Alerts for the cases assigned to you and the cases you follow. Colleagues' cases are not included.",
+    markAllRead: "Mark all as read",
+    markRead: "Mark as read",
+    unread: "Unread",
+    empty: "No notifications yet",
+    emptyHint: "You will be notified here when something changes on a case assigned to you or one you follow.",
+    deadlinesTitle: "Your deadlines",
+    deadlinesDescription:
+      "Confirmed deadlines on your cases that are overdue or due in the next 7 days. These alerts cannot be switched off.",
+    deadlinesEmpty: "No confirmed deadlines in the next 7 days.",
+    overdue: "Overdue",
+    dueToday: "Today",
+    kind: {
+      court_update: "Court update",
+      check_problem: "Check problem",
+      reminder_added: "Deadline",
+      reminder_needs_review: "Deadline to review",
+      case_assigned: "Assigned to you",
+    } as Record<string, string>,
+    checkProblem: (outcome: string) =>
+      `Checks for this case are not working (${outcome}). Look the case up on the court portal until they work again.`,
+    reminderSuggested: (title: string, date: string) => `Date suggested from the court data, to confirm: ${title} · ${date}`,
+    reminderAdded: (title: string, date: string) => `Deadline added: ${title} · ${date}`,
+    reminderNeedsReview: (title: string, date: string) => `This deadline needs to be checked again: ${title} · ${date}`,
+    caseAssigned: "This case was assigned to you.",
+    unavailable: "Details are no longer available.",
+    settingsTitle: "Alert settings",
+    settingsDescription: "Your own settings, for this organization only. They do not change anyone else's alerts.",
+    courtUpdates: "New court updates on my cases",
+    checkProblems: "Problems checking my cases",
+    alwaysOn: "Deadline alerts and new assignments are always on.",
+    save: "Save settings",
   },
 
   settings: {
@@ -409,6 +454,9 @@ export const en = {
       "security.case_access_denied": "Case access denied",
       "security.assignment_denied": "Assignment denied",
       "security.role_change_denied": "Role change denied",
+      "case.followed": "Case followed",
+      "case.unfollowed": "Case no longer followed",
+      "notification.preferences_changed": "Alert settings changed",
     } as Record<string, string>,
   },
 
@@ -462,6 +510,7 @@ export const en = {
     statusUpdated: "The status has been updated.",
     profileUpdated: "The profile has been updated.",
     reminderAdded: "The deadline was added with the status “Proposed”. Confirm it after checking.",
+    alertSettingsSaved: "Your alert settings have been saved.",
   },
 
   monitoring: {
