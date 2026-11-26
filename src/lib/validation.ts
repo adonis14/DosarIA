@@ -132,6 +132,35 @@ export const createReminderSchema = z
 export const REMINDER_ACTIONS = ["confirm", "complete", "reopen", "flag", "unflag"] as const;
 export const reminderActionSchema = z.object({ reminderId: uuid, action: z.enum(REMINDER_ACTIONS) }).strict();
 
+// ---------- ruling follow-up ----------
+/** Today's calendar date in Bucharest (court time), YYYY-MM-DD. */
+export function bucharestToday(now = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Bucharest" }).format(now);
+}
+
+/**
+ * The lawyer records when the ruling was communicated and the deadline date
+ * THEY determined. Nothing is calculated; the deadline starts as proposed.
+ */
+export const recordCommunicationSchema = z
+  .object({
+    followupId: uuid,
+    communicatedOn: isoDate.refine((v) => v <= bucharestToday(), msg("communicationInFuture")),
+    deadlineDate: isoDate,
+    title: trimmed(2, 200, "title"),
+  })
+  .strict()
+  .refine((v) => v.deadlineDate >= v.communicatedOn, { message: msg("deadlineBeforeCommunication"), path: ["deadlineDate"] });
+
+export const RULING_FOLLOWUP_ACTIONS = ["not_needed", "reopen"] as const;
+export const rulingFollowupActionSchema = z
+  .object({
+    followupId: uuid,
+    action: z.enum(RULING_FOLLOWUP_ACTIONS),
+    note: z.string().trim().max(500, "length:note").optional().transform((v) => (v ? v : null)),
+  })
+  .strict();
+
 /** Alert settings: unticked checkboxes are absent from the form. Deadline alerts have no setting. */
 export const notificationPreferencesSchema = z
   .object({ courtUpdates: z.literal("on").optional(), checkProblems: z.literal("on").optional() })

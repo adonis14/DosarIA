@@ -77,6 +77,7 @@ Migrations: `supabase/migrations/`.
 | `case_events` | Detected changes. `UNIQUE (case_id, event_key)` deduplicates events. Includes Romanian and English summaries and `requires_review`. |
 | `deadline_reminders` | `origin` (`manual` / `suggested`), `status` (`proposed` / `confirmed` / `completed` / `needs_review`), and who confirmed it and when. |
 | `monitoring_runs` | Every check attempt with its outcome, including failures. |
+| `ruling_followups` | One task per detected ruling: `awaiting_communication` → `recorded` (communication date + the lawyer's own deadline) or `not_needed`. |
 | `audit_logs` | Append-only security and change history (minimal metadata). |
 | `notifications` | One row per recipient: `kind`, the case, and a reference to the event or reminder (no copy of case content), `read_at`. Created by triggers only. |
 | `notification_preferences` | Per person, per firm: `court_updates`, `check_problems` (both default on). Deadline alerts have no setting. |
@@ -126,6 +127,7 @@ operation. `anon` has no privileges on any table.
 | `notifications` | Own rows, on a readable case only (losing access to the case hides its notifications) | ✗ (triggers only) | Own rows, `read_at` only; the time is set by the server | ✗ (removed with the case, event, reminder or membership) | Triggers on `case_events`, `deadline_reminders`, `cases` |
 | `notification_preferences` | Own rows | Own row, in an organization where the caller is a member | Own row: `court_updates`, `check_problems` | ✗ | — |
 | `case_followers` | Own rows | Self, on a readable case | ✗ | Own rows | — |
+| `ruling_followups` | Readable case | ✗ (trigger on ruling events) | Writable case, admin or lawyer: `status`, `communicated_on`, `reminder_id`, `note`. Transitions, dates and the linked deadline are validated; `resolved_by` / `resolved_at` are set by the server. | ✗ | RPC `record_ruling_communication` (`SECURITY INVOKER`) |
 | `audit_logs` | Admins of that organization | ✗ (triggers; service role for security events) | ✗ for everyone, including the service role | ✗ for everyone, except owner-only purge with an explicit flag | `private.write_audit`, `dal/audit.ts` |
 
 ### SECURITY DEFINER functions
@@ -296,6 +298,31 @@ rejects confirmation without an authenticated lawyer or admin. When a hearing
 moves, reminders dated on the old hearing date become `needs_review`. Only
 `confirmed` reminders appear in the dashboard's “Confirmed deadlines” (“Termene confirmate”).
 
+### Ruling follow-up (appeal deadlines)
+
+An appeal deadline usually runs from the date the ruling is **communicated**,
+and the court portal does not show that date reliably. So the app does not
+calculate it. Every detected ruling (`decision_issued`) opens a task in
+`ruling_followups`:
+
+1. The task is shown on the case, counted on the dashboard (“Needs review”), and
+   listed on the Notifications page of the people on the case. Ruling alerts are
+   always on.
+2. The responsible lawyer (or an admin) enters the **communication date** and the
+   **deadline date they determined** from the applicable rules.
+   `record_ruling_communication` (`SECURITY INVOKER`, so RLS and guards apply)
+   creates an ordinary manual reminder (`proposed`, linked to the ruling event)
+   and marks the task `recorded` in one transaction. The lawyer then confirms
+   the deadline as usual.
+3. Alternatively, they mark it **“No deadline to track”** (e.g. a final ruling),
+   with an optional reason, and can reopen it.
+4. If the proposed deadline is deleted, the task reopens.
+
+The database rejects a communication date in the future or before the ruling,
+and a deadline before the communication date. Assistants can see tasks but
+cannot resolve them. A ruling already present when monitoring starts (the
+baseline) does not open a task.
+
 ### Notifications
 
 Alerts go **only** to the people on the case: the assigned lawyer, the assigned
@@ -308,7 +335,7 @@ check behave the same, and `record_monitoring_run` is unchanged:
 
 | Kind | When | Can be switched off |
 |---|---|---|
-| `court_update` | A new court event is recorded | Yes (`court_updates`) |
+| `court_update` | A new court event is recorded | Yes (`court_updates`), except rulings: always on, since a ruling starts a deadline |
 | `check_problem` | Checks go from working to failing (once, not on every retry) | Yes (`check_problems`) |
 | `reminder_added` | A deadline is added by someone else, or suggested from the court data | No |
 | `reminder_needs_review` | A deadline is flagged for review (e.g. the hearing moved) | No |
@@ -334,6 +361,7 @@ check behave the same, and `record_monitoring_run` is unchanged:
 | Monitoring pipeline, scenario H, deduplication, suggestions | `tests/integration/monitoring.test.ts` | local Supabase |
 | Scheduled checks: claim/lease, plans, endpoint auth | `tests/integration/scheduler.test.ts` | local Supabase |
 | Notifications: recipients, follows, settings, read state, isolation, my deadlines | `tests/integration/notifications.test.ts` | local Supabase |
+| Ruling follow-up: task creation, recording, date rules, roles, isolation | `tests/integration/rulings.test.ts` | local Supabase |
 | End to end (production build): sign-up with email verification via Mailpit, reset, workflow, isolation by URL, headers, no secrets in bundles | `tests/e2e` | local Supabase + browser |
 
 ## 9. Future work (not implemented)

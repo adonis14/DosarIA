@@ -152,6 +152,8 @@ export const en = {
     monitoringDescription: "Result of the last check, per case.",
     noCases: "No cases",
     addFirstCase: "Add your first case",
+    rulingsAwaiting: (count: number) =>
+      `${count} ruling${count === 1 ? "" : "s"} without a recorded communication date (appeal deadline not tracked yet).`,
   },
 
   cases: {
@@ -266,6 +268,27 @@ export const en = {
     alertsNotFollowing: "You do not get alerts for this case.",
     follow: "Follow this case",
     unfollow: "Stop following",
+    rulingsTitle: "Rulings: communication and appeal deadline",
+    rulingsDescription:
+      "An appeal deadline usually runs from the date the ruling is communicated, which the court portal does not show reliably. Record it here when you receive the ruling.",
+    rulingsWarning:
+      "DosarIA does not calculate this deadline. Determine it yourself from the applicable rules (NCPC / CPP) and the communication date.",
+    rulingOf: (date: string) => `Ruling of ${date}`,
+    communicatedOn: "Date the ruling was communicated",
+    deadlineDate: "Deadline date (as you determined it)",
+    deadlineTitle: "Deadline title",
+    deadlineTitleDefault: "Deadline to file an appeal",
+    recordCommunication: "Save communication date and deadline",
+    notNeeded: "No deadline to track",
+    notNeededNote: "Reason (optional, e.g. final ruling)",
+    reopen: "Reopen",
+    awaitingHint: "Waiting for the communication date.",
+    rulingInFuture: "The ruling date is still ahead, so a communication date cannot be recorded yet (with the simulated source, dates are in the future).",
+    recordedSummary: (communicated: string, deadline: string) =>
+      `Communicated on ${communicated}. Deadline: ${deadline}.`,
+    confirmBelow: "The deadline was added as “Proposed”: confirm it in the list below.",
+    notNeededSummary: "Marked as having no deadline to track.",
+    resolvedBy: (name: string, when: string) => `By ${name} on ${when}`,
   },
 
   notifications: {
@@ -301,6 +324,10 @@ export const en = {
     courtUpdates: "New court updates on my cases",
     checkProblems: "Problems checking my cases",
     alwaysOn: "Deadline alerts and new assignments are always on.",
+    rulingTasksTitle: "Rulings waiting for a communication date",
+    rulingTasksDescription: "Record when each ruling was communicated so its appeal deadline can be tracked. These items cannot be switched off.",
+    rulingTask: (date: string) => `Ruling of ${date}: communication date needed`,
+    decisionHint: "Record the communication date on the case to track the appeal deadline.",
     save: "Save settings",
   },
 
@@ -373,6 +400,11 @@ export const en = {
   },
 
   labels: {
+    followupStatus: {
+      awaiting_communication: "Communication date needed",
+      recorded: "Recorded",
+      not_needed: "No deadline",
+    } as Record<string, string>,
     roles: { admin: "Administrator", lawyer: "Lawyer", assistant: "Assistant" },
     memberStatus: { active: "Active", suspended: "Suspended", removed: "Removed" },
     caseStatus: { active: "Active", closed: "Closed", archived: "Archived" },
@@ -457,6 +489,9 @@ export const en = {
       "case.followed": "Case followed",
       "case.unfollowed": "Case no longer followed",
       "notification.preferences_changed": "Alert settings changed",
+      "ruling_followup.opened": "Ruling follow-up opened",
+      "ruling_followup.status_changed": "Ruling follow-up updated",
+      "ruling_followup.updated": "Communication date changed",
     } as Record<string, string>,
   },
 
@@ -499,6 +534,9 @@ export const en = {
     checkedRecently: (minutes: number) =>
       `This case was checked recently. The next check is allowed in ${minutes} min.`,
     checkNotSaved: "The result of the check could not be saved.",
+    onlyAssignedRecordsRuling: "Only the assigned lawyer or an administrator can record the communication date.",
+    followupNotOpen: "This ruling has already been handled.",
+    followupDatesInvalid: "Check the dates: the communication date cannot be in the future or before the ruling, and the deadline cannot be before it.",
   },
 
   success: {
@@ -511,6 +549,7 @@ export const en = {
     profileUpdated: "The profile has been updated.",
     reminderAdded: "The deadline was added with the status “Proposed”. Confirm it after checking.",
     alertSettingsSaved: "Your alert settings have been saved.",
+    communicationRecorded: "Saved. The deadline was added as “Proposed”: confirm it after checking.",
   },
 
   monitoring: {
@@ -526,6 +565,7 @@ export const en = {
     orgName: "Name",
     court: "Court",
     title: "Title",
+    note: "Reason",
   },
 
   validation: {
@@ -545,6 +585,8 @@ export const en = {
     dateFormat: "The date must use the format YYYY-MM-DD.",
     dateInvalid: "Invalid date.",
     dateRange: "Date outside the allowed range.",
+    communicationInFuture: "The communication date cannot be in the future.",
+    deadlineBeforeCommunication: "The deadline cannot be before the communication date.",
     invalid: "Invalid value.",
   },
 

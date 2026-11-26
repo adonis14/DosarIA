@@ -6,6 +6,7 @@ import { archiveCaseAction, assignCaseAction } from "@/app/actions/cases";
 import { checkCaseAction } from "@/app/actions/monitoring";
 import { followCaseAction } from "@/app/actions/notifications";
 import { createReminderAction, deleteReminderAction, reminderStatusAction } from "@/app/actions/reminders";
+import { recordCommunicationAction, rulingFollowupAction } from "@/app/actions/rulings";
 import { ActionForm, FieldError, SubmitButton } from "@/components/app/action-form";
 import { CourtText } from "@/components/app/court-text";
 import { EmptyState } from "@/components/app/page-header";
@@ -28,12 +29,14 @@ import { getT } from "@/i18n/server";
 import { serverEnv } from "@/lib/env";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { displayReminderText } from "@/lib/suggested-reminder";
+import { bucharestToday } from "@/lib/validation";
 import { isAdminOf, requireOrgPageContext, roleIn } from "@/server/context";
 import { canEditCase, getAuthorizedCase } from "@/server/dal/cases";
 import { getAuthorizedCaseEvents, getCaseCheckSchedule, getCaseMonitoringRuns, type CheckScheduleRow } from "@/server/dal/events";
 import { getCaseAlertStatus } from "@/server/dal/notifications";
 import { listMembers } from "@/server/dal/organizations";
 import { getCaseReminders, type ReminderRow } from "@/server/dal/reminders";
+import { getCaseRulingFollowups, type RulingFollowupRow } from "@/server/dal/rulings";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getT()).meta.caseDetail };
@@ -47,13 +50,14 @@ export default async function CaseDetailPage({ params }: PageProps<"/cases/[case
   // Same response for "does not exist" and "not yours".
   if (!c) notFound();
 
-  const [events, runs, schedule, reminders, members, alerts] = await Promise.all([
+  const [events, runs, schedule, reminders, members, alerts, followups] = await Promise.all([
     getAuthorizedCaseEvents(ctx, c.id),
     getCaseMonitoringRuns(ctx, c.id),
     getCaseCheckSchedule(ctx, c.id),
     getCaseReminders(ctx, c.id),
     listMembers(ctx, c.organization_id),
     getCaseAlertStatus(ctx, c),
+    getCaseRulingFollowups(ctx, c.id),
   ]);
 
   const role = roleIn(ctx, c.organization_id);
@@ -245,6 +249,27 @@ export default async function CaseDetailPage({ params }: PageProps<"/cases/[case
         </Card>
       </div>
 
+      {/* Rulings: communication date → the lawyer's own deadline */}
+      {followups.length > 0 && (
+        <Card data-testid="rulings">
+          <CardHeader>
+            <CardTitle>{t.caseDetail.rulingsTitle}</CardTitle>
+            <CardDescription>{t.caseDetail.rulingsDescription}</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            <Alert>
+              <Info aria-hidden />
+              <AlertDescription>{t.caseDetail.rulingsWarning}</AlertDescription>
+            </Alert>
+            <ul className="divide-y rounded-md border">
+              {followups.map((f) => (
+                <RulingItem key={f.id} f={f} canAct={canConfirm} nameOf={nameOf} t={t} locale={locale} />
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Reminders */}
       <Card>
         <CardHeader>
@@ -411,6 +436,126 @@ function ReminderItem({
             </ActionForm>
           )}
         </div>
+      )}
+    </li>
+  );
+}
+
+function RulingItem({
+  f,
+  canAct,
+  nameOf,
+  t,
+  locale,
+}: {
+  f: RulingFollowupRow;
+  canAct: boolean;
+  nameOf: Map<string, string>;
+  t: Dictionary;
+  locale: Locale;
+}) {
+  const rulingDate = f.case_events?.occurred_on ?? null;
+  const solution = f.case_events?.details?.solution_text ?? null;
+  const today = bucharestToday();
+  // A communication cannot precede the ruling (simulated rulings are dated in the future).
+  const rulingAhead = rulingDate !== null && rulingDate > today;
+  const awaiting = f.status === "awaiting_communication";
+
+  return (
+    <li className="grid gap-3 p-4" data-testid="ruling" data-status={f.status}>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="font-medium">{t.caseDetail.rulingOf(formatDate(rulingDate, locale))}</span>
+        <Badge variant="outline" className={awaiting ? "ml-auto border-amber-300 bg-amber-50 text-amber-900" : "ml-auto"}>
+          {label(t.labels.followupStatus, f.status)}
+        </Badge>
+      </div>
+      {solution && (
+        <p className="text-sm text-muted-foreground">
+          <CourtText value={solution} />
+        </p>
+      )}
+
+      {f.status === "recorded" && f.communicated_on && (
+        <p className="text-sm">
+          {t.caseDetail.recordedSummary(formatDate(f.communicated_on, locale), formatDate(f.deadline_reminders?.due_date, locale))}
+          {f.deadline_reminders && f.deadline_reminders.status !== "confirmed" && f.deadline_reminders.status !== "completed" && (
+            <span className="block text-xs text-amber-800 dark:text-amber-300">{t.caseDetail.confirmBelow}</span>
+          )}
+        </p>
+      )}
+      {f.status === "not_needed" && (
+        <p className="text-sm">
+          {t.caseDetail.notNeededSummary}
+          {f.note && <span className="block text-muted-foreground">{f.note}</span>}
+        </p>
+      )}
+      {!awaiting && f.resolved_by && f.resolved_at && (
+        <p className="text-xs text-muted-foreground">
+          {t.caseDetail.resolvedBy(nameOf.get(f.resolved_by) ?? "—", formatDateTime(f.resolved_at, locale))}
+        </p>
+      )}
+
+      {awaiting && !canAct && <p className="text-sm text-muted-foreground">{t.caseDetail.awaitingHint}</p>}
+      {awaiting && canAct && rulingAhead && (
+        <p className="text-sm text-muted-foreground" data-testid="ruling-ahead">
+          {t.caseDetail.rulingInFuture}
+        </p>
+      )}
+      {awaiting && canAct && !rulingAhead && (
+        <ActionForm action={recordCommunicationAction} className="grid gap-3 sm:grid-cols-3">
+          <input type="hidden" name="followupId" value={f.id} />
+          <div className="grid gap-2">
+            <Label htmlFor={`communicatedOn-${f.id}`}>{t.caseDetail.communicatedOn}</Label>
+            <Input
+              id={`communicatedOn-${f.id}`}
+              name="communicatedOn"
+              type="date"
+              min={rulingDate ?? undefined}
+              max={today}
+              required
+            />
+            <FieldError name="communicatedOn" />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor={`deadlineDate-${f.id}`}>{t.caseDetail.deadlineDate}</Label>
+            <Input id={`deadlineDate-${f.id}`} name="deadlineDate" type="date" required />
+            <FieldError name="deadlineDate" />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor={`deadlineTitle-${f.id}`}>{t.caseDetail.deadlineTitle}</Label>
+            <Input id={`deadlineTitle-${f.id}`} name="title" defaultValue={t.caseDetail.deadlineTitleDefault} required />
+            <FieldError name="title" />
+          </div>
+          <div className="sm:col-span-3">
+            <SubmitButton size="sm">{t.caseDetail.recordCommunication}</SubmitButton>
+          </div>
+        </ActionForm>
+      )}
+      {awaiting && canAct && (
+        <details className="text-sm">
+          <summary className="cursor-pointer text-muted-foreground">{t.caseDetail.notNeeded}</summary>
+          <ActionForm action={rulingFollowupAction} className="mt-2 grid gap-2 sm:max-w-md">
+            <input type="hidden" name="followupId" value={f.id} />
+            <input type="hidden" name="action" value="not_needed" />
+            <Label htmlFor={`note-${f.id}`}>{t.caseDetail.notNeededNote}</Label>
+            <Input id={`note-${f.id}`} name="note" maxLength={500} />
+            <FieldError name="note" />
+            <div>
+              <SubmitButton size="sm" variant="outline">
+                {t.caseDetail.notNeeded}
+              </SubmitButton>
+            </div>
+          </ActionForm>
+        </details>
+      )}
+      {f.status === "not_needed" && canAct && (
+        <ActionForm action={rulingFollowupAction}>
+          <input type="hidden" name="followupId" value={f.id} />
+          <input type="hidden" name="action" value="reopen" />
+          <SubmitButton size="sm" variant="ghost">
+            {t.caseDetail.reopen}
+          </SubmitButton>
+        </ActionForm>
       )}
     </li>
   );

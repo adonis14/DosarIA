@@ -13,6 +13,7 @@ import { requireOrgPageContext } from "@/server/context";
 import { getDashboardStats } from "@/server/dal/dashboard";
 import { getRecentEvents } from "@/server/dal/events";
 import { getUpcomingConfirmedReminders } from "@/server/dal/reminders";
+import { countOpenRulingFollowups } from "@/server/dal/rulings";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getT()).meta.dashboard };
@@ -21,10 +22,11 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function DashboardPage() {
   const ctx = await requireOrgPageContext();
   const { t, locale } = ctx;
-  const [stats, upcoming, recent] = await Promise.all([
+  const [stats, upcoming, recent, openRulings] = await Promise.all([
     getDashboardStats(ctx),
     getUpcomingConfirmedReminders(ctx),
     getRecentEvents(ctx, 8),
+    countOpenRulingFollowups(ctx),
   ]);
   const scope = ctx.activeOrg.role === "admin" ? t.dashboard.scopeAdmin : t.dashboard.scopeLawyer;
 
@@ -39,7 +41,7 @@ export default async function DashboardPage() {
         <StatCard
           icon={ShieldAlert}
           title={t.dashboard.statReview}
-          value={stats.remindersNeedingReview + stats.casesNeedingAttention.length}
+          value={stats.remindersNeedingReview + stats.casesNeedingAttention.length + openRulings}
           warn
         />
       </div>
@@ -124,10 +126,15 @@ export default async function DashboardPage() {
             <CardDescription>{t.dashboard.attentionDescription}</CardDescription>
           </CardHeader>
           <CardContent>
-            {stats.casesNeedingAttention.length === 0 && stats.remindersNeedingReview === 0 ? (
+            {stats.casesNeedingAttention.length === 0 && stats.remindersNeedingReview === 0 && openRulings === 0 ? (
               <EmptyState title={t.dashboard.attentionEmpty} />
             ) : (
               <ul className="divide-y">
+                {openRulings > 0 && (
+                  <li className="py-3 text-sm" data-testid="open-rulings">
+                    {t.dashboard.rulingsAwaiting(openRulings)}
+                  </li>
+                )}
                 {stats.remindersNeedingReview > 0 && (
                   <li className="py-3 text-sm">{t.dashboard.remindersNeedingReview(stats.remindersNeedingReview)}</li>
                 )}

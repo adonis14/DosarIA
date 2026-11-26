@@ -148,6 +148,8 @@ export const ro: Dictionary = {
     monitoringDescription: "Rezultatul ultimei verificări, pe dosare.",
     noCases: "Niciun dosar",
     addFirstCase: "Adăugați primul dosar",
+    rulingsAwaiting: (count: number) =>
+      `${count} ${count === 1 ? "hotărâre" : "hotărâri"} fără data comunicării înregistrată (termenul de cale de atac nu este încă urmărit).`,
   },
 
   cases: {
@@ -262,6 +264,27 @@ export const ro: Dictionary = {
     alertsNotFollowing: "Nu primiți alerte pentru acest dosar.",
     follow: "Urmăriți dosarul",
     unfollow: "Nu mai urmăriți",
+    rulingsTitle: "Hotărâri: comunicare și termen de cale de atac",
+    rulingsDescription:
+      "Termenul de cale de atac curge de regulă de la comunicarea hotărârii, iar portalul instanțelor nu afișează sigur această dată. Înregistrați-o aici când primiți hotărârea.",
+    rulingsWarning:
+      "DosarIA nu calculează acest termen. Stabiliți-l dvs. pe baza normelor aplicabile (NCPC / CPP) și a datei comunicării.",
+    rulingOf: (date: string) => `Hotărârea din ${date}`,
+    communicatedOn: "Data comunicării hotărârii",
+    deadlineDate: "Data termenului (stabilită de dvs.)",
+    deadlineTitle: "Titlul termenului",
+    deadlineTitleDefault: "Termen pentru declararea căii de atac",
+    recordCommunication: "Salvați data comunicării și termenul",
+    notNeeded: "Fără termen de urmărit",
+    notNeededNote: "Motiv (opțional, de ex. hotărâre definitivă)",
+    reopen: "Redeschideți",
+    awaitingHint: "Se așteaptă data comunicării.",
+    rulingInFuture: "Data hotărârii nu a sosit încă, deci data comunicării nu poate fi înregistrată acum (cu sursa simulată, datele sunt în viitor).",
+    recordedSummary: (communicated: string, deadline: string) =>
+      `Comunicată la ${communicated}. Termen: ${deadline}.`,
+    confirmBelow: "Termenul a fost adăugat ca „Propus”: confirmați-l în lista de mai jos.",
+    notNeededSummary: "Marcată ca fără termen de urmărit.",
+    resolvedBy: (name: string, when: string) => `De ${name}, la ${when}`,
   },
 
   notifications: {
@@ -297,6 +320,10 @@ export const ro: Dictionary = {
     courtUpdates: "Actualizări noi de la instanță în dosarele mele",
     checkProblems: "Probleme la verificarea dosarelor mele",
     alwaysOn: "Alertele de termen și atribuirile noi sunt întotdeauna active.",
+    rulingTasksTitle: "Hotărâri fără data comunicării",
+    rulingTasksDescription: "Înregistrați data comunicării fiecărei hotărâri pentru a urmări termenul de cale de atac. Aceste elemente nu pot fi dezactivate.",
+    rulingTask: (date: string) => `Hotărârea din ${date}: lipsește data comunicării`,
+    decisionHint: "Înregistrați data comunicării în dosar pentru a urmări termenul de cale de atac.",
     save: "Salvați setările",
   },
 
@@ -369,6 +396,11 @@ export const ro: Dictionary = {
   },
 
   labels: {
+    followupStatus: {
+      awaiting_communication: "Lipsește data comunicării",
+      recorded: "Înregistrată",
+      not_needed: "Fără termen",
+    } as Record<string, string>,
     roles: { admin: "Administrator", lawyer: "Avocat", assistant: "Asistent" },
     memberStatus: { active: "Activ", suspended: "Suspendat", removed: "Eliminat" },
     caseStatus: { active: "Activ", closed: "Închis", archived: "Arhivat" },
@@ -453,6 +485,9 @@ export const ro: Dictionary = {
       "case.followed": "Dosar urmărit",
       "case.unfollowed": "Dosar care nu mai este urmărit",
       "notification.preferences_changed": "Setări de alertă modificate",
+      "ruling_followup.opened": "Urmărire hotărâre deschisă",
+      "ruling_followup.status_changed": "Urmărire hotărâre actualizată",
+      "ruling_followup.updated": "Data comunicării modificată",
     },
   },
 
@@ -495,6 +530,9 @@ export const ro: Dictionary = {
     checkedRecently: (minutes: number) =>
       `Dosarul a fost verificat recent. Următoarea verificare este permisă peste ${minutes} min.`,
     checkNotSaved: "Rezultatul verificării nu a putut fi salvat.",
+    onlyAssignedRecordsRuling: "Doar avocatul responsabil sau un administrator poate înregistra data comunicării.",
+    followupNotOpen: "Această hotărâre a fost deja tratată.",
+    followupDatesInvalid: "Verificați datele: data comunicării nu poate fi în viitor sau înaintea hotărârii, iar termenul nu poate fi înaintea ei.",
   },
 
   success: {
@@ -507,6 +545,7 @@ export const ro: Dictionary = {
     profileUpdated: "Profilul a fost actualizat.",
     reminderAdded: "Termenul a fost adăugat cu statutul „Propus”. Confirmați-l după verificare.",
     alertSettingsSaved: "Setările de alertă au fost salvate.",
+    communicationRecorded: "Salvat. Termenul a fost adăugat ca „Propus”: confirmați-l după verificare.",
   },
 
   monitoring: {
@@ -520,6 +559,7 @@ export const ro: Dictionary = {
     orgName: "Denumirea",
     court: "Instanța",
     title: "Titlul",
+    note: "Motivul",
   },
 
   validation: {
@@ -539,6 +579,8 @@ export const ro: Dictionary = {
     dateFormat: "Data trebuie să fie în formatul AAAA-LL-ZZ.",
     dateInvalid: "Dată invalidă.",
     dateRange: "Dată în afara intervalului permis.",
+    communicationInFuture: "Data comunicării nu poate fi în viitor.",
+    deadlineBeforeCommunication: "Termenul nu poate fi înaintea datei comunicării.",
     invalid: "Valoare invalidă.",
   },
 

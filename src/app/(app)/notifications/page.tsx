@@ -17,6 +17,7 @@ import {
   listNotifications,
   type NotificationRow,
 } from "@/server/dal/notifications";
+import { getMyOpenRulingFollowups } from "@/server/dal/rulings";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getT()).meta.notifications };
@@ -25,10 +26,11 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function NotificationsPage() {
   const ctx = await requireOrgPageContext();
   const { t, locale } = ctx;
-  const [items, deadlines, prefs] = await Promise.all([
+  const [items, deadlines, prefs, rulings] = await Promise.all([
     listNotifications(ctx),
     getMyUpcomingDeadlines(ctx),
     getNotificationPreferences(ctx),
+    getMyOpenRulingFollowups(ctx),
   ]);
   const unread = items.filter((n) => !n.read_at).length;
 
@@ -48,6 +50,28 @@ export default async function NotificationsPage() {
           )
         }
       />
+
+      {rulings.length > 0 && (
+        <Card className="border-amber-300">
+          <CardHeader>
+            <CardTitle>{t.notifications.rulingTasksTitle}</CardTitle>
+            <CardDescription>{t.notifications.rulingTasksDescription}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="divide-y" data-testid="my-ruling-tasks">
+              {rulings.map((r) => (
+                <li key={r.id} className="flex flex-wrap items-center gap-2 py-3 text-sm">
+                  <Link href={`/cases/${r.case_id}`} className="font-mono hover:underline">
+                    {r.court_case_number}
+                  </Link>
+                  <span className="truncate text-muted-foreground">{r.case_title}</span>
+                  <span className="ml-auto">{t.notifications.rulingTask(formatDate(r.ruling_date, locale))}</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -159,7 +183,10 @@ function notificationText(n: NotificationRow, t: Dictionary, locale: Locale): st
   switch (n.kind) {
     case "court_update":
       if (!e) return t.notifications.unavailable;
-      return `${label(t.labels.eventType, e.event_type)}: ${locale === "en" && e.summary_en ? e.summary_en : e.summary_ro}`;
+      return (
+        `${label(t.labels.eventType, e.event_type)}: ${locale === "en" && e.summary_en ? e.summary_en : e.summary_ro}` +
+        (e.event_type === "decision_issued" ? ` ${t.notifications.decisionHint}` : "")
+      );
     case "check_problem":
       return t.notifications.checkProblem(n.check_outcome ? label(t.labels.checkOutcome, n.check_outcome) : "—");
     case "reminder_added": {

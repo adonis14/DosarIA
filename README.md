@@ -150,6 +150,19 @@ Try it with the demo users:
 3. As `admin.a`, open that case and press “Urmăriți dosarul” (Follow this case).
    After the next check, the admin gets its alerts too.
 
+## Rulings and appeal deadlines
+
+When a ruling is detected, the case shows a task **“Lipsește data comunicării”**
+(communication date needed). DosarIA does **not** calculate the appeal deadline.
+The responsible lawyer enters the date the ruling was communicated and the
+deadline date they determined. This creates a normal deadline as “Propus”, which
+they then confirm. They can also mark the ruling “Fără termen de urmărit” (no
+deadline to track). Open tasks appear on the dashboard and on Notifications.
+
+With the simulated source, rulings are dated in the future, so the case page
+explains that the communication date can only be recorded after the ruling
+date. The automated tests use synthetic rulings with past dates.
+
 ## Automatic checks (smart schedule)
 
 Off by default; cases are then checked only when someone presses the button.

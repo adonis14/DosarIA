@@ -381,6 +381,44 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"ruling_followups": {
+                  Row: {
+                    "case_id": string,"communicated_on": string | null,"created_at": string,"event_id": string,"id": string,"note": string | null,"organization_id": string,"reminder_id": string | null,"resolved_at": string | null,"resolved_by": string | null,"status": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "case_id": string,"communicated_on"?: string | null,"created_at"?: string,"event_id": string,"id"?: string,"note"?: string | null,"organization_id": string,"reminder_id"?: string | null,"resolved_at"?: string | null,"resolved_by"?: string | null,"status"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "case_id"?: string,"communicated_on"?: string | null,"created_at"?: string,"event_id"?: string,"id"?: string,"note"?: string | null,"organization_id"?: string,"reminder_id"?: string | null,"resolved_at"?: string | null,"resolved_by"?: string | null,"status"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ruling_followups_case_fk"
+      columns: ["organization_id","case_id"]
+isOneToOne: false
+      referencedRelation: "cases"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "ruling_followups_event_fk"
+      columns: ["case_id","event_id"]
+isOneToOne: false
+      referencedRelation: "case_events"
+      referencedColumns: ["case_id","id"]
+    },{
+      foreignKeyName: "ruling_followups_reminder_fk"
+      columns: ["case_id","reminder_id"]
+isOneToOne: false
+      referencedRelation: "deadline_reminders"
+      referencedColumns: ["case_id","id"]
+    },{
+      foreignKeyName: "ruling_followups_resolved_by_fkey"
+      columns: ["resolved_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 }
           }
           Views: {
@@ -398,6 +436,11 @@ isOneToOne: false
 "create_organization":
 { Args: { "p_name": string }; Returns: string
                            },
+"my_open_ruling_followups":
+{ Args: { "p_organization_id": string }; Returns: {
+              "case_id": string,"case_title": string,"court_case_number": string,"created_at": string,"id": string,"ruling_date": string
+            }[]
+                           },
 "my_upcoming_deadlines":
 { Args: { "p_days"?: number,"p_organization_id": string }; Returns: {
               "case_id": string,"case_title": string,"court_case_number": string,"description": string,"due_date": string,"id": string,"origin": Database["public"]['Enums']["reminder_origin"],"title": string
@@ -405,6 +448,9 @@ isOneToOne: false
                            },
 "record_monitoring_run":
 { Args: { "p_case_id": string,"p_court_status"?: string,"p_error_code"?: string,"p_events"?: Json,"p_finished_at": string,"p_next_check_at"?: string,"p_next_check_reason"?: string,"p_organization_id": string,"p_outcome": Database["public"]['Enums']["check_outcome"],"p_provider": string,"p_snapshot"?: Json,"p_started_at": string,"p_trigger_type": string,"p_triggered_by": string }; Returns: Json
+                           },
+"record_ruling_communication":
+{ Args: { "p_communicated_on": string,"p_deadline_date": string,"p_deadline_title": string,"p_followup_id": string }; Returns: string
                            }
           }
           Enums: {
