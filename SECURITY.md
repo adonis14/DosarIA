@@ -75,7 +75,7 @@ ownership audit query.
   - **Limitation**: these limits are in-memory, so they apply per instance (see §8).
 - **Interface language**: the `dosaria_locale` cookie and
   `profiles.preferred_locale` affect presentation only, never authorization.
-  Unknown values fall back to English. The column accepts only `en` and `ro`
+  Unknown values fall back to Romanian. The column accepts only `en` and `ro`
   (CHECK constraint). Users can update it on their own profile only, through
   RLS and a single-column grant, and tests cover this.
 - **Errors**: users see generic messages in their interface language. Server logs contain a context

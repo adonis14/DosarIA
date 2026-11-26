@@ -4,7 +4,7 @@ import { cache } from "react";
 import { LOCALE_COOKIE, type Locale } from "./config";
 import { getDictionary, resolveLocale, type Dictionary } from "./index";
 
-/** The interface language for this request (cookie; English by default). */
+/** The interface language for this request (cookie; Romanian by default). */
 export const getLocale = cache(async (): Promise<Locale> => {
   return resolveLocale((await cookies()).get(LOCALE_COOKIE)?.value);
 });

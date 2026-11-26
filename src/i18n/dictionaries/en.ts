@@ -1,5 +1,5 @@
 /**
- * English interface text (default language).
+ * English interface text (Romanian is the default language).
  *
  * `ro.ts` must provide exactly the same keys (enforced by the `Dictionary`
  * type and by tests/unit/i18n.test.ts). Strings under `client` must stay plain

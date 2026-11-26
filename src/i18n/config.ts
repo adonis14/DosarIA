@@ -1,6 +1,7 @@
 /**
- * Supported interface languages. English is the default; Romanian is the
- * language of the courts and of the published court data.
+ * Supported interface languages. Romanian is the default: it is the language
+ * of the courts, of the published court data and of the users (lawyers
+ * practising in Romania). English is available through the language switch.
  *
  * The chosen language is stored in a cookie (read on every request) and, for
  * signed-in users, in profiles.preferred_locale so it follows the user to a
@@ -10,7 +11,7 @@
 export const LOCALES = ["en", "ro"] as const;
 export type Locale = (typeof LOCALES)[number];
 
-export const DEFAULT_LOCALE: Locale = "en";
+export const DEFAULT_LOCALE: Locale = "ro";
 export const LOCALE_COOKIE = "dosaria_locale";
 
 export function isLocale(value: unknown): value is Locale {

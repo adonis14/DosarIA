@@ -20,7 +20,7 @@ lawyers can:
 
 ## Interface language
 
-The interface is in **English by default**, with a full **Romanian** version.
+The interface is in **Romanian by default**, with a full **English** version.
 Use the **EN / RO** switch in the header, on the sign-in pages or on the
 Profile page:
 - The choice is kept in a cookie and, for signed-in users, saved to their

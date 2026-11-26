@@ -3,36 +3,37 @@ import { createConfirmedUser, TEST_PASSWORD } from "../helpers/world";
 import { world } from "./helpers";
 
 /*
- * Interface language. These tests start WITHOUT the Romanian cookie that the
- * other specs use, and use their own synthetic user and firm so a saved
- * language preference never leaks into the shared E2E users.
+ * Interface language. Romanian is the default; English is one click away.
+ * These tests start with no cookies and use their own synthetic user and firm,
+ * so a saved language preference never leaks into the shared E2E users.
  */
 const NO_COOKIES = { cookies: [], origins: [] };
 test.use({ storageState: NO_COOKIES });
 
-test("English is the default interface language", async ({ page }) => {
+test("Romanian is the default interface language", async ({ page }) => {
   await page.goto("/login");
-  await expect(page.locator("html")).toHaveAttribute("lang", "en");
-  await expect(page.getByText("Access your firm's case files.")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "EN" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("html")).toHaveAttribute("lang", "ro");
+  await expect(page.getByRole("button", { name: "Intră în cont" })).toBeVisible();
+  await expect(page.getByTestId("language-switcher").getByRole("button", { name: "RO", exact: true })).toHaveAttribute("aria-pressed", "true");
 });
 
 test("switching language works before sign-in and is kept in a cookie", async ({ page }) => {
   await page.goto("/login");
-  await page.getByRole("button", { name: "RO" }).click();
-  await expect(page.getByRole("button", { name: "Intră în cont" })).toBeVisible();
-  await expect(page.locator("html")).toHaveAttribute("lang", "ro");
+  await page.getByTestId("language-switcher").getByRole("button", { name: "EN", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible();
+  await expect(page.getByText("Access your firm's case files.")).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
 
   await page.goto("/signup");
-  await expect(page.getByRole("button", { name: "Creează contul" })).toBeVisible();
-
-  await page.getByRole("button", { name: "EN" }).click();
   await expect(page.getByRole("button", { name: "Create account" })).toBeVisible();
+
+  await page.getByTestId("language-switcher").getByRole("button", { name: "RO", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Creează contul" })).toBeVisible();
 });
 
 test("English error and validation messages", async ({ page }) => {
   await page.goto("/login");
+  await page.getByTestId("language-switcher").getByRole("button", { name: "EN", exact: true }).click();
   await page.getByLabel("Email").fill(`nobody.${Date.now()}@example.com`);
   await page.getByLabel("Password", { exact: true }).fill("Wrong-Password-1");
   await page.getByRole("button", { name: "Sign in" }).click();
@@ -46,14 +47,16 @@ test("English error and validation messages", async ({ page }) => {
   await expect(page.getByText("at least 12 characters long")).toBeVisible();
 });
 
-test("English journey: firm → case → check (court terms glossed) → switch to Romanian → restored in a new browser", async ({
+test("English journey: firm → case → check (court terms glossed) → language saved and restored in a new browser", async ({
   page,
   browser,
 }) => {
   const email = `i18n.${world().tag}.${Date.now()}@example.com`;
   await createConfirmedUser(email, "Language Test (synthetic)");
 
+  // Choose English before signing in; the first sign-in saves it to the profile.
   await page.goto("/login");
+  await page.getByTestId("language-switcher").getByRole("button", { name: "EN", exact: true }).click();
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password", { exact: true }).fill(TEST_PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
@@ -87,19 +90,21 @@ test("English journey: firm → case → check (court terms glossed) → switch 
   await events.getByText("Original Romanian").first().click();
   await expect(events).toContainText("Monitorizarea dosarului a început");
 
-  // Switch to Romanian: the same page re-renders in Romanian and the choice is saved.
-  await page.getByRole("button", { name: "RO" }).click();
+  // Switching while signed in re-renders the same page and saves the choice.
+  await page.getByTestId("language-switcher").getByRole("button", { name: "RO", exact: true }).click();
   await expect(page.getByRole("button", { name: "Verifică actualizări" })).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("lang", "ro");
+  await page.getByTestId("language-switcher").getByRole("button", { name: "EN", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Check for updates" })).toBeVisible();
 
-  // A fresh browser (no cookies) starts in English and switches to the saved language at sign-in.
+  // A fresh browser (no cookies) starts in Romanian and switches to the saved English at sign-in.
   const other = await browser.newContext({ storageState: NO_COOKIES });
   const page2 = await other.newPage();
   await page2.goto("/login");
-  await expect(page2.getByRole("button", { name: "Sign in" })).toBeVisible();
-  await page2.getByLabel("Email").fill(email);
-  await page2.getByLabel("Password", { exact: true }).fill(TEST_PASSWORD);
-  await page2.getByRole("button", { name: "Sign in" }).click();
-  await expect(page2.getByRole("heading", { name: "Panou" })).toBeVisible();
+  await expect(page2.getByRole("button", { name: "Intră în cont" })).toBeVisible();
+  await page2.getByLabel("E-mail").fill(email);
+  await page2.getByLabel("Parolă", { exact: true }).fill(TEST_PASSWORD);
+  await page2.getByRole("button", { name: "Intră în cont" }).click();
+  await expect(page2.getByRole("heading", { name: "Dashboard" })).toBeVisible();
   await other.close();
 });

@@ -290,11 +290,11 @@
       // (works even if the link is opened in a different browser than the one that signed up).
       "template": {
         "confirmation": {
-          "subject": "DosarIA — Confirm your email / Confirmați adresa de e-mail",
+          "subject": "DosarIA — Confirmați adresa de e-mail / Confirm your email",
           "content_path": "./supabase/templates/confirmation.html"
         },
         "recovery": {
-          "subject": "DosarIA — Password reset / Resetarea parolei",
+          "subject": "DosarIA — Resetarea parolei / Password reset",
           "content_path": "./supabase/templates/recovery.html"
         }
       },

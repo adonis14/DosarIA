@@ -16,24 +16,8 @@ export default defineConfig({
     trace: "retain-on-failure",
     locale: "ro-RO",
     timezoneId: "Europe/Bucharest",
-    // The UI defaults to English; the original workflow specs assert the Romanian
-    // interface, so they start with the Romanian language cookie.
-    // tests/e2e/i18n.spec.ts overrides this to cover the English default and switching.
-    storageState: {
-      cookies: [
-        {
-          name: "dosaria_locale",
-          value: "ro",
-          domain: "localhost",
-          path: "/",
-          expires: -1,
-          httpOnly: true,
-          secure: false,
-          sameSite: "Lax",
-        },
-      ],
-      origins: [],
-    },
+    // No language cookie: the workflow specs run on the default (Romanian)
+    // interface. tests/e2e/i18n.spec.ts covers the English switch.
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getDictionary, interpolate, LOCALES, resolveLocale } from "@/i18n";
+import { DEFAULT_LOCALE, getDictionary, interpolate, LOCALES, resolveLocale } from "@/i18n";
 import { courtNameGloss, courtTermGloss, courtTermInline, displayCourtTerm } from "@/i18n/court-terms";
 import { en } from "@/i18n/dictionaries/en";
 import { ro } from "@/i18n/dictionaries/ro";
@@ -43,11 +43,12 @@ describe("dictionaries", () => {
     for (const d of [en, ro]) for (const kind of Object.values(shape(d.client))) expect(kind).toBe("string");
   });
 
-  it("English is the default and unknown values fall back to it", () => {
+  it("Romanian is the default and unknown values fall back to it", () => {
     expect(LOCALES).toEqual(["en", "ro"]);
-    expect(resolveLocale(undefined)).toBe("en");
-    expect(resolveLocale("fr")).toBe("en");
-    expect(resolveLocale("ro")).toBe("ro");
+    expect(DEFAULT_LOCALE).toBe("ro");
+    expect(resolveLocale(undefined)).toBe("ro");
+    expect(resolveLocale("fr")).toBe("ro");
+    expect(resolveLocale("en")).toBe("en");
     expect(getDictionary("ro")).toBe(ro);
   });
 

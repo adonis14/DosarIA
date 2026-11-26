@@ -479,31 +479,32 @@ describe("interface language (presentation only)", () => {
   const en = getDictionary("en");
   const ro = getDictionary("ro");
 
-  it("messages follow the language cookie; English is the default", async () => {
+  it("messages follow the language cookie; Romanian is the default", async () => {
     actAs(null);
-    expect(await run(() => caseActions.createCaseAction(null, form(validCase)))).toMatchObject({
-      ok: false,
-      code: "unauthenticated",
-      error: en.errors.codes.unauthenticated,
-    });
-    state.cookieJar.set("dosaria_locale", "ro");
     expect(await run(() => caseActions.createCaseAction(null, form(validCase)))).toMatchObject({
       ok: false,
       code: "unauthenticated",
       error: ro.errors.codes.unauthenticated,
     });
+    state.cookieJar.set("dosaria_locale", "en");
+    expect(await run(() => caseActions.createCaseAction(null, form(validCase)))).toMatchObject({
+      ok: false,
+      code: "unauthenticated",
+      error: en.errors.codes.unauthenticated,
+    });
   });
 
-  it("an unknown language cookie falls back to English", async () => {
+  it("an unknown language cookie falls back to Romanian", async () => {
     actAs(null);
     state.cookieJar.set("dosaria_locale", "<script>");
     expect(await run(() => caseActions.createCaseAction(null, form(validCase)))).toMatchObject({
-      error: en.errors.codes.unauthenticated,
+      error: ro.errors.codes.unauthenticated,
     });
   });
 
   it("validation messages are translated, and the language never changes authorization", async () => {
     actAs(w.lawyerA1.client, w.orgA);
+    state.cookieJar.set("dosaria_locale", "en");
     const enResult = (await run(() => caseActions.createCaseAction(null, form({ ...validCase, title: "x" })))) as {
       fieldErrors?: Record<string, string[]>;
     };
@@ -530,30 +531,30 @@ describe("interface language (presentation only)", () => {
   it("setLocaleAction saves the choice to the caller's own profile only and ignores unknown values", async () => {
     await adminClient().from("profiles").update({ preferred_locale: null }).in("id", [w.lawyerA1.id, w.lawyerA2.id]);
     actAs(w.lawyerA1.client, w.orgA);
-    await localeActions.setLocaleAction(form({ locale: "ro", id: w.lawyerA2.id, userId: w.lawyerA2.id }));
-    expect(state.cookieJar.get("dosaria_locale")).toBe("ro");
+    await localeActions.setLocaleAction(form({ locale: "en", id: w.lawyerA2.id, userId: w.lawyerA2.id }));
+    expect(state.cookieJar.get("dosaria_locale")).toBe("en");
 
     await localeActions.setLocaleAction(form({ locale: "de" }));
-    expect(state.cookieJar.get("dosaria_locale")).toBe("ro");
+    expect(state.cookieJar.get("dosaria_locale")).toBe("en");
 
     const { data } = await adminClient().from("profiles").select("id, preferred_locale").in("id", [w.lawyerA1.id, w.lawyerA2.id]);
-    expect(data!.find((p) => p.id === w.lawyerA1.id)!.preferred_locale).toBe("ro");
+    expect(data!.find((p) => p.id === w.lawyerA1.id)!.preferred_locale).toBe("en");
     expect(data!.find((p) => p.id === w.lawyerA2.id)!.preferred_locale).toBeNull();
   });
 
   it("setLocaleAction works for anonymous visitors (cookie only)", async () => {
     actAs(null);
-    await localeActions.setLocaleAction(form({ locale: "ro" }));
-    expect(state.cookieJar.get("dosaria_locale")).toBe("ro");
+    await localeActions.setLocaleAction(form({ locale: "en" }));
+    expect(state.cookieJar.get("dosaria_locale")).toBe("en");
   });
 
   it("loginAction restores the saved language, or saves the current one when none is stored", async () => {
-    await adminClient().from("profiles").update({ preferred_locale: "ro" }).eq("id", w.lawyerB1.id);
+    await adminClient().from("profiles").update({ preferred_locale: "en" }).eq("id", w.lawyerB1.id);
     actAs(anonClient());
     expect(await run(() => authActions.loginAction(null, form({ email: w.lawyerB1.email, password: TEST_PASSWORD })))).toEqual({
       redirect: "/dashboard",
     });
-    expect(state.cookieJar.get("dosaria_locale")).toBe("ro");
+    expect(state.cookieJar.get("dosaria_locale")).toBe("en");
 
     await adminClient().from("profiles").update({ preferred_locale: null }).eq("id", w.adminB.id);
     actAs(anonClient());
@@ -561,6 +562,6 @@ describe("interface language (presentation only)", () => {
       redirect: "/dashboard",
     });
     const { data } = await adminClient().from("profiles").select("preferred_locale").eq("id", w.adminB.id).single();
-    expect(data!.preferred_locale).toBe("en");
+    expect(data!.preferred_locale).toBe("ro");
   });
 });

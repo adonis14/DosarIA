@@ -219,7 +219,7 @@ not constituting legal advice.
 
 ### Interface language
 
-The interface is in English (the default) and Romanian, and lives in `src/i18n/`:
+The interface is in Romanian (the default) and English, and lives in `src/i18n/`:
 - **Dictionaries**: `dictionaries/en.ts` and `ro.ts`. Both have the same
   type, which the compiler and a unit test enforce.
 - **Locale**: read from the `dosaria_locale` cookie (HttpOnly, `SameSite=Lax`).
