@@ -210,6 +210,10 @@ export const ro: Dictionary = {
     courtStatus: "Stare la instanță (ultima verificare reușită)",
     lastSuccess: "Ultima verificare reușită",
     lastAttempt: "Ultima încercare",
+    nextCheck: "Următoarea verificare automată",
+    nextCheckOff: "Verificările automate sunt oprite; folosiți butonul pentru verificare.",
+    nextCheckSoon: "În curând",
+    nextCheckInactive: "Neprogramată (dosarul nu este activ)",
     check: "Verifică actualizări",
     checking: "Se verifică sursa…",
     archived: "Dosarul este arhivat; monitorizarea este oprită.",
@@ -333,6 +337,12 @@ export const ro: Dictionary = {
       insolvency: "Insolvență",
       criminal: "Penal",
       other: "Altele",
+    },
+    nextCheckReason: {
+      regular: "verificare obișnuită (dimineața și seara)",
+      after_hearing: "după ședință, la fiecare 30 de minute până apare soluția",
+      awaiting_result: "se așteaptă soluția, din oră în oră",
+      retry: "reîncercare după o verificare nereușită",
     },
     checkOutcome: {
       never_checked: "Neverificat",

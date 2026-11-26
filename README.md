@@ -129,6 +129,28 @@ can set it with `DEMO_PASSWORD=...`. To create additional users, sign up at
 5. **Account.** Sign-up with email verification, password reset (via Mailpit),
    logout and profile editing.
 
+## Automatic checks (smart schedule)
+
+Off by default; cases are then checked only when someone presses the button.
+To try it locally with the simulated court source:
+
+1. Add to `.env.local`:
+   ```
+   SCHEDULED_CHECKS_ENABLED=true
+   SCHEDULER_SECRET=<32+ random characters>
+   ```
+   Generate one with
+   `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`.
+2. Restart `npm run dev`, then run `npm run scheduler` in a second terminal.
+   It calls the app every minute; `npm run scheduler -- --once` runs one batch.
+
+Each case page shows the **next automatic check** and why: regular (morning and
+evening), after a hearing (every 30 minutes until the result appears), result
+awaited (hourly), or a retry. The rules are in ARCHITECTURE.md §5.
+
+Note: every check advances the simulated timeline of a case by one step, so
+demo cases change faster than real ones would.
+
 ## Tests
 
 ```bash
@@ -197,9 +219,10 @@ directly.
 | `APP_URL` | yes | Used in email links; must be `https://` in production |
 | `SUPABASE_URL` | yes | EU-region project in production |
 | `SUPABASE_PUBLISHABLE_KEY` | yes | Publishable/anon key |
-| `SUPABASE_SECRET_KEY` | yes | Service-role key. **Server only**; used by two reviewed modules |
+| `SUPABASE_SECRET_KEY` | yes | Service-role key. **Server only**; used by three reviewed modules (`check-case.ts`, `scheduler.ts`, `dal/audit.ts`) |
 | `COURT_DATA_PROVIDER` | no | `mock` (default). `portaljust_soap` is a disabled interface |
 | `MOCK_COURT_ANCHOR_DATE`, `MOCK_COURT_LATENCY_MS` | no | Mock timeline base date and demo latency |
+| `SCHEDULED_CHECKS_ENABLED`, `SCHEDULER_SECRET`, `SCHEDULER_BATCH_SIZE` | no | Automatic checks; off by default. See *Automatic checks* |
 | `PORTAL_JUST_*`, `AI_*` | no | Must remain `false` until separately approved |
 
 ### External service configuration

@@ -25,6 +25,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"case_check_schedule": {
+                  Row: {
+                    "case_id": string,"claimed_until": string | null,"next_check_at": string,"organization_id": string,"reason": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "case_id": string,"claimed_until"?: string | null,"next_check_at": string,"organization_id": string,"reason": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "case_id"?: string,"claimed_until"?: string | null,"next_check_at"?: string,"organization_id"?: string,"reason"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "case_check_schedule_case_fk"
+      columns: ["organization_id","case_id"]
+isOneToOne: false
+      referencedRelation: "cases"
+      referencedColumns: ["organization_id","id"]
+    }
+                  ]
                 },"case_events": {
                   Row: {
                     "case_id": string,"details": NonNullable<Json>,"detected_at": string,"event_key": string,"event_type": Database["public"]['Enums']["event_type"],"id": string,"occurred_on": string | null,"organization_id": string,"requires_review": boolean,"snapshot_id": string | null,"summary_en": string | null,"summary_ro": string,"summary_source": string
@@ -286,11 +306,16 @@ isOneToOne: false
             "accept_invitation":
 { Args: { "p_token": string }; Returns: string
                            },
+"claim_due_case_checks":
+{ Args: { "p_lease_seconds"?: number,"p_limit": number,"p_organization_id"?: string }; Returns: {
+              "case_id": string,"court_case_number": string,"court_name": string,"last_check_attempt_at": string,"last_check_outcome": Database["public"]['Enums']["check_outcome"],"matter_type": Database["public"]['Enums']["matter_type"],"organization_id": string
+            }[]
+                           },
 "create_organization":
 { Args: { "p_name": string }; Returns: string
                            },
 "record_monitoring_run":
-{ Args: { "p_case_id": string,"p_court_status"?: string,"p_error_code"?: string,"p_events"?: Json,"p_finished_at": string,"p_organization_id": string,"p_outcome": Database["public"]['Enums']["check_outcome"],"p_provider": string,"p_snapshot"?: Json,"p_started_at": string,"p_trigger_type": string,"p_triggered_by": string }; Returns: Json
+{ Args: { "p_case_id": string,"p_court_status"?: string,"p_error_code"?: string,"p_events"?: Json,"p_finished_at": string,"p_next_check_at"?: string,"p_next_check_reason"?: string,"p_organization_id": string,"p_outcome": Database["public"]['Enums']["check_outcome"],"p_provider": string,"p_snapshot"?: Json,"p_started_at": string,"p_trigger_type": string,"p_triggered_by": string }; Returns: Json
                            }
           }
           Enums: {

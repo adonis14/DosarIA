@@ -67,7 +67,12 @@ type RawHearing = {
   solutie?: string;
   solutieSumar?: string;
   numarDocument?: string;
+  documentSedinta?: string;
+  dataDocument?: string;
 };
+
+/** A postponement is recorded in an "încheiere de ședință" dated the hearing day. */
+const hearingRecord = (date: string) => ({ documentSedinta: "Încheiere de ședință", dataDocument: date });
 
 export class MockCourtDataProvider implements CourtDataProvider {
   readonly id = "mock";
@@ -125,6 +130,8 @@ export class MockCourtDataProvider implements CourtDataProvider {
       complet: panel,
       solutie: "Amână",
       solutieSumar: "Amână cauza pentru lipsă de procedură cu pârâta.",
+      documentSedinta: "Încheiere de ședință",
+      dataDocument: d(-30),
     };
 
     let stage = "Fond";
@@ -141,14 +148,14 @@ export class MockCourtDataProvider implements CourtDataProvider {
       version = 2;
       hearings = [
         first,
-        { data: d(7), ora: time, complet: panel, solutie: "Amână pronunțarea", solutieSumar: "Amână pronunțarea." },
+        { data: d(7), ora: time, complet: panel, solutie: "Amână pronunțarea", solutieSumar: "Amână pronunțarea.", ...hearingRecord(d(7)) },
         { data: d(21), ora: "12:00", complet: panel },
       ];
     } else {
       version = step === 6 ? 3 : 4;
       hearings = [
         first,
-        { data: d(7), ora: time, complet: panel, solutie: "Amână pronunțarea", solutieSumar: "Amână pronunțarea." },
+        { data: d(7), ora: time, complet: panel, solutie: "Amână pronunțarea", solutieSumar: "Amână pronunțarea.", ...hearingRecord(d(7)) },
         {
           data: d(21),
           ora: "12:00",
@@ -157,6 +164,8 @@ export class MockCourtDataProvider implements CourtDataProvider {
           solutieSumar:
             "Admite în parte cererea de chemare în judecată. Cu drept de apel. Pronunțată prin punerea soluției la dispoziția părților prin mijlocirea grefei.",
           numarDocument: `Hotărâre ${100 + (seed % 800)}/${d(21).slice(0, 4)}`,
+          documentSedinta: "Hotărâre",
+          dataDocument: d(21),
         },
       ];
       status = "Soluționat";

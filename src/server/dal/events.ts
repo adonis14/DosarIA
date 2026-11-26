@@ -70,6 +70,24 @@ export async function getRecentEvents(ctx: AuthContext, limit = 10): Promise<Rec
   return (data ?? []) as RecentEventRow[];
 }
 
+export type CheckScheduleRow = { next_check_at: string; reason: string };
+
+/** When the case is next checked automatically (RLS: readable cases only). */
+export async function getCaseCheckSchedule(ctx: AuthContext, caseId: string): Promise<CheckScheduleRow | null> {
+  const id = uuid.safeParse(caseId);
+  if (!id.success) return null;
+  const { data, error } = await ctx.supabase
+    .from("case_check_schedule")
+    .select("next_check_at, reason")
+    .eq("case_id", id.data)
+    .maybeSingle();
+  if (error) {
+    logServerError("getCaseCheckSchedule", error);
+    return null;
+  }
+  return data;
+}
+
 export async function getCaseMonitoringRuns(ctx: AuthContext, caseId: string, limit = 10): Promise<MonitoringRunRow[]> {
   const id = uuid.safeParse(caseId);
   if (!id.success) return [];

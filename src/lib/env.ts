@@ -36,11 +36,20 @@ const schema = z
     PORTAL_JUST_INTEGRATION_APPROVED: bool,
     PORTAL_JUST_MIN_INTERVAL_MINUTES: z.coerce.number().int().min(15).max(1440).default(60),
     PORTAL_JUST_TIMEOUT_MS: z.coerce.number().int().min(1000).max(60000).default(15000),
+    /** Automatic checks. Off unless explicitly enabled; see src/server/monitoring/scheduler.ts. */
+    SCHEDULED_CHECKS_ENABLED: bool,
+    /** Shared secret the timer sends to the scheduler endpoint (Bearer token, at least 32 characters). */
+    SCHEDULER_SECRET: z.string().min(32).optional(),
+    /** Maximum number of cases checked per scheduler run. */
+    SCHEDULER_BATCH_SIZE: z.coerce.number().int().min(1).max(100).default(20),
     AI_PROVIDER_ENABLED: bool,
     AI_EU_PROCESSING_VERIFIED: bool,
     AI_DPA_SIGNED: bool,
   })
   .superRefine((env, ctx) => {
+    if (env.SCHEDULED_CHECKS_ENABLED && !env.SCHEDULER_SECRET) {
+      ctx.addIssue({ code: "custom", path: ["SCHEDULER_SECRET"], message: "required when SCHEDULED_CHECKS_ENABLED=true" });
+    }
     if (env.NODE_ENV !== "production") return;
     // Production must use HTTPS end to end (localhost is allowed for local `next start` runs).
     for (const key of ["APP_URL", "SUPABASE_URL"] as const) {

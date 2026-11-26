@@ -63,13 +63,16 @@ These are **not started**, and will not be without written approval:
 
 - ⚠️ **Enabling the real portal provider** for client files. Requires the full
   checklist in `docs/PORTAL-INTEGRATION.md` §7.
-- ⚠️ **Scheduled / automatic checks** (no live polling exists today). Proposed
-  design:
-  - a Postgres job table
-  - per-file intervals of 4 h or more, on working days only
+- **Scheduled / automatic checks**: approved in principle by Agora Origin
+  (2026-11-26) and **built, off by default** (`SCHEDULED_CHECKS_ENABLED`).
+  Smart schedule: morning and evening; every 30 min after a hearing until the
+  result appears; hourly the next 2 days; weekends for criminal files. See
+  ARCHITECTURE.md §5. Still to do before live use:
+  - ⚠️ live use stays blocked until the real portal provider is approved
   - `CautareDosare2` with a `dataUltimaModificare` window to avoid
     re-downloading unchanged files
-  - global request budget and back-off on 429/5xx
+  - a global request budget and back-off on 429/5xx
+  - confirm the timings with real cases (when do results actually appear?)
 - ⚠️ **Procedural deadline calculation**: a deterministic, versioned rules
   engine, with every rule linked to the NCPC article and reviewed by a lawyer,
   and a 100% pass rate on a lawyer-built test set. Suggestions only; lawyer

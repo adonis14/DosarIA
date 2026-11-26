@@ -10,6 +10,10 @@ import type { Database } from "./database.types";
  *   - src/server/monitoring/check-case.ts: recording a monitoring run AFTER
  *     the user's access to the case was verified with their own RLS-scoped
  *     client; organization and case ids come from that verified row.
+ *   - src/server/monitoring/check-case.ts (runScheduledCheck) and
+ *     src/server/monitoring/scheduler.ts: automatic checks. Cases come from
+ *     claim_due_case_checks (a service-role RPC), never from user input, and
+ *     every write is scoped by organization_id AND case id.
  *   - src/server/dal/audit.ts: appending security audit events.
  *
  * Never use it for user-facing CRUD, never pass it to client components, and

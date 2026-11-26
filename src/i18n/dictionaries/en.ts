@@ -214,6 +214,10 @@ export const en = {
     courtStatus: "Status at court (last successful check)",
     lastSuccess: "Last successful check",
     lastAttempt: "Last attempt",
+    nextCheck: "Next automatic check",
+    nextCheckOff: "Automatic checks are off; use the button to check.",
+    nextCheckSoon: "Shortly",
+    nextCheckInactive: "Not scheduled (the case is not active)",
     check: "Check for updates",
     checking: "Checking the source…",
     archived: "This case is archived; monitoring is stopped.",
@@ -337,6 +341,12 @@ export const en = {
       insolvency: "Insolvency",
       criminal: "Criminal",
       other: "Other",
+    },
+    nextCheckReason: {
+      regular: "regular check (morning and evening)",
+      after_hearing: "after a hearing, every 30 minutes until the result appears",
+      awaiting_result: "result still awaited, every hour",
+      retry: "retry after an unsuccessful check",
     },
     checkOutcome: {
       never_checked: "Not checked",

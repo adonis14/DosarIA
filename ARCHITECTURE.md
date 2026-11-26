@@ -118,6 +118,7 @@ operation. `anon` has no privileges on any table.
 | `case_snapshots` | Readable case | ✗ | ✗ | ✗ | `record_monitoring_run` (service role only) |
 | `case_events` | Readable case | ✗ | ✗ | ✗ | `record_monitoring_run` (service role only) |
 | `monitoring_runs` | Readable case | ✗ | ✗ | ✗ | `record_monitoring_run` (service role only) |
+| `case_check_schedule` | Readable case | ✗ | ✗ | ✗ | `record_monitoring_run`, `claim_due_case_checks` (service role only) |
 | `deadline_reminders` | Readable case | Writable case. Always `origin = manual`, `status = proposed`; `created_by` forced. | Writable case: `title`, `description`, `due_date`, `status`. Transitions are validated. Confirmation requires an authenticated admin or lawyer, and records `confirmed_by` / `confirmed_at` server-side. Editing a confirmed date voids the confirmation. | Writable case, only while `proposed` / `needs_review` | `record_monitoring_run` may add `suggested` / `proposed` reminders and set `needs_review`. It can **never** confirm. |
 | `audit_logs` | Admins of that organization | ✗ (triggers; service role for security events) | ✗ for everyone, including the service role | ✗ for everyone, except owner-only purge with an explicit flag | `private.write_audit`, `dal/audit.ts` |
 
@@ -170,8 +171,11 @@ where n.nspname in ('public','private') order by 1,2;
      `incomplete` and is never used as a baseline.
 5. A canonical SHA-256 is compared against the last **complete** snapshot.
    Identical → `no_changes`; otherwise `detectChanges()` produces events.
-6. `record_monitoring_run` is called through the service-role client, with the
-   organization and case IDs **taken from the row verified in step 1**.
+6. `planNextCheck()` (`schedule.ts`) plans the next automatic check from the
+   latest hearings (see *Scheduled checks* below).
+7. `record_monitoring_run` is called through the service-role client, with the
+   organization and case IDs **taken from the row verified in step 1**. It also
+   stores the next check in `case_check_schedule`, in the same transaction.
 
 Outcomes map one-to-one to the UI states:
 - `changes_detected` → *Actualizare nouă detectată*
@@ -200,6 +204,43 @@ concurrent double clicks, hit `UNIQUE (case_id, event_key)`.
 - Earlier stub behaviour, kept: it refuses non-HTTPS endpoints,
   performs no network I/O, and returns `provider_disabled`. That result is
   recorded as a failed check, never as “no changes”.
+
+### Scheduled checks
+
+Off unless `SCHEDULED_CHECKS_ENABLED=true`. A timer (host cron, or
+`npm run scheduler` locally) calls `POST /api/internal/scheduled-checks` every
+minute with `Authorization: Bearer <SCHEDULER_SECRET>`.
+
+1. `claim_due_case_checks` (service role only) returns up to
+   `SCHEDULER_BATCH_SIZE` **active** cases whose next check is due, and leases
+   them (`FOR UPDATE SKIP LOCKED` + `claimed_until`), so two runs never check
+   the same file. Cases without a schedule row are due immediately. An optional
+   organization filter limits a run to one firm.
+2. Each case goes through the same check as a manual one
+   (`runScheduledCheck` → `performCheck`), recorded with
+   `trigger_type = 'scheduled'` and no triggering user. The database rejects a
+   scheduled run that names a user.
+3. `record_monitoring_run` saves the next check and releases the lease. If a
+   run cannot be saved, the lease expires and the case is retried.
+4. With the real portal provider configured but not approved, nothing is
+   claimed or fetched.
+
+**Rules** (`src/server/monitoring/schedule.ts`, Europe/Bucharest time; unit-tested):
+
+| Reason | When |
+|---|---|
+| `regular` | 07:30 and 18:00 on working days (weekends and Romanian public holidays skipped); criminal files every day |
+| `after_hearing` | On a hearing day with no result yet: from the (estimated) hearing time + 3 h (14:00 if no time) until 22:00, every 30 min |
+| `awaiting_result` | The next 2 checking days if still no result: 08:00–20:00, every 60 min |
+| `retry` | After a failed, unavailable or incomplete check: within 60 min |
+
+The earliest applicable time wins, never sooner than the provider's
+`minIntervalMs` for one file. Public holidays (`calendar-ro.ts`) are used for
+scheduling only; they must be verified by a lawyer before being reused for
+deadline calculation.
+
+The schedule lives in its own table, not on `cases`, so scheduler activity
+never writes case audit entries or changes a case's `updated_at`.
 
 ## 6. Summaries
 
@@ -261,8 +302,8 @@ moves, reminders dated on the old hearing date become `needs_review`. Only
 
 ## 9. Future work (not implemented)
 
-- Live `PortalJustSoapProvider` after legal, terms-of-use and HTTPS verification;
-  scheduled checks (a Postgres-backed job table, not Redis, unless needed).
+- Live `PortalJustSoapProvider` after legal, terms-of-use and transport approval.
+  Scheduled checks are built but off by default (see §5).
 - Email/in-app notifications, Google/Microsoft calendar sync.
 - A deterministic, lawyer-reviewed deadline rules engine.
 - MFA (TOTP) and SSO.

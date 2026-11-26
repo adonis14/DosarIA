@@ -29,7 +29,7 @@ import { formatDate, formatDateTime } from "@/lib/format";
 import { displayReminderText } from "@/lib/suggested-reminder";
 import { isAdminOf, requireOrgPageContext, roleIn } from "@/server/context";
 import { canEditCase, getAuthorizedCase } from "@/server/dal/cases";
-import { getAuthorizedCaseEvents, getCaseMonitoringRuns } from "@/server/dal/events";
+import { getAuthorizedCaseEvents, getCaseCheckSchedule, getCaseMonitoringRuns, type CheckScheduleRow } from "@/server/dal/events";
 import { listMembers } from "@/server/dal/organizations";
 import { getCaseReminders, type ReminderRow } from "@/server/dal/reminders";
 
@@ -45,9 +45,10 @@ export default async function CaseDetailPage({ params }: PageProps<"/cases/[case
   // Same response for "does not exist" and "not yours".
   if (!c) notFound();
 
-  const [events, runs, reminders, members] = await Promise.all([
+  const [events, runs, schedule, reminders, members] = await Promise.all([
     getAuthorizedCaseEvents(ctx, c.id),
     getCaseMonitoringRuns(ctx, c.id),
+    getCaseCheckSchedule(ctx, c.id),
     getCaseReminders(ctx, c.id),
     listMembers(ctx, c.organization_id),
   ]);
@@ -126,6 +127,12 @@ export default async function CaseDetailPage({ params }: PageProps<"/cases/[case
               <div>
                 <dt className="text-muted-foreground">{t.caseDetail.lastAttempt}</dt>
                 <dd className="mt-1 font-medium">{formatDateTime(c.last_check_attempt_at, locale)}</dd>
+              </div>
+              <div className="sm:col-span-2">
+                <dt className="text-muted-foreground">{t.caseDetail.nextCheck}</dt>
+                <dd className="mt-1" data-testid="next-check">
+                  <NextCheck enabled={serverEnv().SCHEDULED_CHECKS_ENABLED} active={c.status === "active"} schedule={schedule} t={t} locale={locale} />
+                </dd>
               </div>
             </dl>
             {!archived ? (
@@ -404,6 +411,31 @@ function EventSummary({ ro, en, locale, otherLabel }: { ro: string; en: string |
           </p>
         </details>
       )}
+    </>
+  );
+}
+
+/** When the case is next checked automatically, and why. */
+function NextCheck({
+  enabled,
+  active,
+  schedule,
+  t,
+  locale,
+}: {
+  enabled: boolean;
+  active: boolean;
+  schedule: CheckScheduleRow | null;
+  t: Dictionary;
+  locale: Locale;
+}) {
+  if (!enabled) return <span className="text-muted-foreground">{t.caseDetail.nextCheckOff}</span>;
+  if (!active) return <span className="text-muted-foreground">{t.caseDetail.nextCheckInactive}</span>;
+  if (!schedule) return <span className="font-medium">{t.caseDetail.nextCheckSoon}</span>;
+  return (
+    <>
+      <span className="font-medium">{formatDateTime(schedule.next_check_at, locale)}</span>
+      <span className="text-muted-foreground"> · {label(t.labels.nextCheckReason, schedule.reason)}</span>
     </>
   );
 }

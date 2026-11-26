@@ -20,6 +20,10 @@ const RawHearingSchema = z.object({
   // part (e.g. appeal rights) is usually at the END — never truncate to 1000.
   solutieSumar: shortText(10_000).nullish(),
   numarDocument: shortText(200).nullish(),
+  // Type and date of the document recorded at the hearing, e.g. "Încheiere de
+  // ședință" (a hearing record) vs. a final ruling. Kept as published.
+  documentSedinta: shortText(200).nullish(),
+  dataDocument: isoDate.nullish(),
 });
 
 const RawPartySchema = z.object({
@@ -49,6 +53,8 @@ export type NormalizedHearing = {
   solutionType: SolutionType | null;
   solutionText: string | null;
   documentReference: string | null;
+  documentType: string | null;
+  documentDate: string | null;
 };
 
 export type NormalizedCase = {
@@ -104,6 +110,8 @@ export function normalizeCourtCase(payload: unknown): NormalizeResult {
           solutionType: classifySolution(h.solutie),
           solutionText: nullIfEmpty(h.solutieSumar) ?? nullIfEmpty(h.solutie),
           documentReference: nullIfEmpty(h.numarDocument),
+          documentType: nullIfEmpty(h.documentSedinta),
+          documentDate: h.dataDocument ?? null,
         }))
         .sort((a, b) => (a.date + (a.time ?? "")).localeCompare(b.date + (b.time ?? "")))
     : null;

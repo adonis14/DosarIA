@@ -13,7 +13,16 @@ import { authCookieOptions } from "@/lib/supabase/cookies";
  * tenant isolation regardless of what happens here.
  */
 
-const PUBLIC_PATHS = ["/login", "/signup", "/forgot-password", "/auth/confirm", "/auth/check-email", "/auth/error"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/auth/confirm",
+  "/auth/check-email",
+  "/auth/error",
+  // Machine-to-machine endpoints: no session, authenticated by their own shared secret.
+  "/api/internal",
+];
 
 function isPublic(pathname: string) {
   return pathname === "/" || PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));

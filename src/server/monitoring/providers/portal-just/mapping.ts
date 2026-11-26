@@ -67,6 +67,8 @@ export function mapPortalDosarToRaw(dosar: PortalDosar) {
       solutie: cut(s.solutie, 200),
       solutieSumar: cut(s.solutieSumar, 10_000), // observed live: up to ~5,200 chars
       numarDocument: cut(s.numarDocument, 200),
+      documentSedinta: cut(s.documentSedinta, 200),
+      dataDocument: isoDay(s.dataDocument),
     }))
     .filter((s): s is typeof s & { data: string } => s.data !== null)
     .sort((a, b) => (a.data + (a.ora ?? "")).localeCompare(b.data + (b.ora ?? "")))

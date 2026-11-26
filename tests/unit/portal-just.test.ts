@@ -124,6 +124,11 @@ describe("mapping portal Dosar → provider-neutral raw shape", () => {
         ["2026-11-12", "09:00", "postponement"],
         ["2026-12-19", "09:00", null],
       ]);
+      // Document type and date tell a hearing record from a final ruling.
+      expect(n.data.hearings.map((h) => [h.documentType, h.documentDate])).toEqual([
+        ["Incheiereamanare", "2026-11-12"],
+        [null, null],
+      ]);
       expect(n.data.stage).toBe("Fond");
       expect(n.data.status).toBe(DERIVED_STATUS_PENDING);
       expect(n.data.lastModifiedAtSource).toBe("2026-07-15T10:30:00+03:00");

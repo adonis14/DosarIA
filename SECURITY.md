@@ -31,7 +31,7 @@ Primary threats, in priority order:
 | Column grants | `UPDATE` is granted per column. `organization_id`, `created_by`, monitoring state and confirmation metadata are not writable by users at the privilege level. | `…0200` |
 | Guard triggers | Assignment changes are admin-only. Org and user keys are immutable. No self-role changes; the last active admin is protected. Reminder status transitions are validated. Confirmation requires an authenticated lawyer or admin and is stamped server-side. Invitations can only be revoked. | `…0300_guards_and_audit.sql` |
 | Referential integrity | Composite FKs `(organization_id, case_id)` and `(organization_id, assigned_user_id)` make cross-firm association impossible, **even for the service role**. | `…0100_schema.sql` |
-| Server-only privileged access | The service-role key is used only by `check-case.ts` (after RLS-verified access) and `dal/audit.ts`. An ESLint rule forbids importing it anywhere else. It is never in a `NEXT_PUBLIC_*` variable. | `src/lib/supabase/admin.ts`, `eslint.config.mjs` |
+| Server-only privileged access | The service-role key is used only by `check-case.ts` (manual checks after RLS-verified access; scheduled checks on cases handed out by the service-role RPC `claim_due_case_checks`), `scheduler.ts` and `dal/audit.ts`. An ESLint rule forbids importing it anywhere else. It is never in a `NEXT_PUBLIC_*` variable. | `src/lib/supabase/admin.ts`, `eslint.config.mjs` |
 | DAL | Strict Zod schemas (unknown keys rejected). Whitelisted form keys. App-level role checks. `organization_id` taken from verified rows. Minimal column selection. “Not found” and “forbidden” are indistinguishable. | `src/server/dal/*` |
 
 SECURITY DEFINER functions live in the unexposed `private` schema, use
@@ -54,6 +54,13 @@ ownership audit query.
 - **Other headers**: `X-Frame-Options: DENY`, `nosniff`,
   `Referrer-Policy: strict-origin-when-cross-origin`, a restrictive
   `Permissions-Policy`, COOP/CORP `same-origin`, and no `X-Powered-By`.
+- **Scheduler endpoint** (`POST /api/internal/scheduled-checks`): returns 404
+  unless `SCHEDULED_CHECKS_ENABLED=true` and a secret is set. It requires
+  `Authorization: Bearer <SCHEDULER_SECRET>` (at least 32 characters, compared
+  in constant time; 401 otherwise), runs one batch at a time per instance, and
+  returns counts only, never case data. It uses no cookies or session. In
+  production, also restrict it at the network level (only the cron caller) and
+  keep the secret in the host's secret store.
 - **CSRF**: mutations are Server Actions only (POST). Next.js checks
   `Origin` against `Host`, and `SameSite=Lax` cookies add a second layer. The
   only GET route handler (`/auth/confirm`) consumes single-use tokens and

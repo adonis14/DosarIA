@@ -85,6 +85,8 @@ test("English journey: firm → case → check (court terms glossed) → languag
   // First check: English summary first, Romanian original on demand.
   await page.getByRole("button", { name: "Check for updates" }).click();
   await expect(page.getByRole("status").filter({ hasText: "New update detected" })).toBeVisible();
+  // Automatic checks are off unless explicitly enabled (they are in this test run).
+  await expect(page.getByTestId("next-check")).toContainText("Automatic checks are off");
   const events = page.getByTestId("events");
   await expect(events).toContainText("Monitoring of this case has started.");
   await events.getByText("Original Romanian").first().click();
