@@ -82,6 +82,7 @@ Migrations: `supabase/migrations/`.
 | `notifications` | One row per recipient: `kind`, the case, and a reference to the event or reminder (no copy of case content), `read_at`. Created by triggers only. |
 | `notification_preferences` | Per person, per firm: `court_updates`, `check_problems` (both default on). Deadline alerts have no setting. |
 | `case_followers` | Opt-in: a person who can read a case chooses to get its alerts. |
+| `calendar_feeds` | One private calendar link per person per firm. Only the SHA-256 hash of the link's token is stored. |
 
 ### Cross-tenant integrity (enforced by the database)
 
@@ -128,6 +129,7 @@ operation. `anon` has no privileges on any table.
 | `notification_preferences` | Own rows | Own row, in an organization where the caller is a member | Own row: `court_updates`, `check_problems` | ✗ | — |
 | `case_followers` | Own rows | Self, on a readable case | ✗ | Own rows | — |
 | `ruling_followups` | Readable case | ✗ (trigger on ruling events) | Writable case, admin or lawyer: `status`, `communicated_on`, `reminder_id`, `note`. Transitions, dates and the linked deadline are validated; `resolved_by` / `resolved_at` are set by the server. | ✗ | RPC `record_ruling_communication` (`SECURITY INVOKER`) |
+| `calendar_feeds` | Own rows, without `token_hash` | Own row (via RPC `replace_calendar_feed`, which revokes the previous link) | Own row: `revoked_at` only, once | ✗ | `calendar_feed(hash)` (service role only) |
 | `audit_logs` | Admins of that organization | ✗ (triggers; service role for security events) | ✗ for everyone, including the service role | ✗ for everyone, except owner-only purge with an explicit flag | `private.write_audit`, `dal/audit.ts` |
 
 ### SECURITY DEFINER functions
@@ -351,6 +353,40 @@ check behave the same, and `record_monitoring_run` is unchanged:
   shows it.
 - In-app only for now. Email delivery (through an EU provider) is future work.
 
+### Client note (template, no AI)
+
+Each court update on the case page offers a **draft note for the client**, in
+Romanian and English (`src/lib/client-note.ts`):
+- The court's wording is quoted exactly and never reworded.
+- The note states no deadline. For a ruling, it says only that an appeal time
+  limit usually runs from the communication of the ruling.
+- The lawyer edits the draft and copies it into their own email. DosarIA sends
+  nothing and does not store the draft.
+- Updates with nothing to tell a client (e.g. the start of monitoring without a
+  hearing date) offer no note.
+
+### Private calendar link (ICS)
+
+A person creates one secret link per firm on the Notifications page and
+subscribes to it in Google Calendar or Outlook.
+
+- **What it shows:** upcoming hearings (from each case's latest complete
+  snapshot) and confirmed deadlines, for the same cases the person gets alerts
+  for.
+- **Security:**
+  - The token is 32 random bytes and only its SHA-256 hash is stored. The link
+    is shown once.
+  - Creating a new link revokes the old one, and a link can be turned off.
+  - Unknown, revoked or malformed links, and links of inactive members, all
+    get the same 404.
+- **What leaves DosarIA:** calendar providers store what they fetch, so events
+  carry only the case number and the court name, plus a link back to DosarIA
+  (which needs a sign-in). No titles, party names, court text or deadline
+  titles are included.
+- **Route:** `GET /api/calendar/<token>.ics` (no session; rate-limited per
+  link). `src/server/calendar/feed.ts` calls the service-role function
+  `calendar_feed(hash)`, which applies the alert visibility rules.
+
 ## 8. Testing strategy
 
 | Layer | Location | Needs |
@@ -362,13 +398,15 @@ check behave the same, and `record_monitoring_run` is unchanged:
 | Scheduled checks: claim/lease, plans, endpoint auth | `tests/integration/scheduler.test.ts` | local Supabase |
 | Notifications: recipients, follows, settings, read state, isolation, my deadlines | `tests/integration/notifications.test.ts` | local Supabase |
 | Ruling follow-up: task creation, recording, date rules, roles, isolation | `tests/integration/rulings.test.ts` | local Supabase |
+| Calendar link: token hashing, feed content and minimisation, revocation, route | `tests/integration/calendar.test.ts` | local Supabase |
+| Client note and ICS writer | `tests/unit/client-note.test.ts`, `tests/unit/ics.test.ts` | nothing |
 | End to end (production build): sign-up with email verification via Mailpit, reset, workflow, isolation by URL, headers, no secrets in bundles | `tests/e2e` | local Supabase + browser |
 
 ## 9. Future work (not implemented)
 
 - Live `PortalJustSoapProvider` after legal, terms-of-use and transport approval.
   Scheduled checks are built but off by default (see §5).
-- Email delivery of notifications (in-app notifications are built), Google/Microsoft calendar sync.
+- Email delivery of notifications (in-app notifications are built). A direct Google/Microsoft calendar connection (the private ICS link is built).
 - A deterministic, lawyer-reviewed deadline rules engine.
 - MFA (TOTP) and SSO.
 - Shared-store rate limiting for multi-instance deployments.

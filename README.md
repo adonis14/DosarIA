@@ -163,6 +163,22 @@ With the simulated source, rulings are dated in the future, so the case page
 explains that the communication date can only be recorded after the ruling
 date. The automated tests use synthetic rulings with past dates.
 
+## Client note and calendar link
+
+- **Client note:** every court update on a case has **“Notă pentru client
+  (ciornă)”**. It is a draft in Romanian and English that quotes the court's
+  exact wording. Edit it, press **Copiați**, and send it yourself. Nothing is
+  sent or saved.
+- **Calendar link:** on **Notificări**, press **“Creați linkul de calendar”** and
+  paste the link into Google Calendar (Other calendars → From URL) or Outlook
+  (Subscribe from web).
+  - It shows your hearings and confirmed deadlines, with the case number and
+    court only.
+  - The link is shown once. You can replace it or turn it off.
+  - Google refreshes subscribed calendars every few hours.
+  - A local `http://localhost` link only works on your own machine; Google
+    needs a public HTTPS address (staging).
+
 ## Automatic checks (smart schedule)
 
 Off by default; cases are then checked only when someone presses the button.

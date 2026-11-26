@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { revokeCalendarFeedAction } from "@/app/actions/calendar";
 import { markNotificationsReadAction, saveNotificationPreferencesAction } from "@/app/actions/notifications";
 import { ActionForm, SubmitButton } from "@/components/app/action-form";
+import { CalendarLinkForm } from "@/components/app/calendar-link-form";
 import { EmptyState, PageHeader } from "@/components/app/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +19,7 @@ import {
   listNotifications,
   type NotificationRow,
 } from "@/server/dal/notifications";
+import { getMyCalendarFeed } from "@/server/dal/calendar";
 import { getMyOpenRulingFollowups } from "@/server/dal/rulings";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -26,11 +29,12 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function NotificationsPage() {
   const ctx = await requireOrgPageContext();
   const { t, locale } = ctx;
-  const [items, deadlines, prefs, rulings] = await Promise.all([
+  const [items, deadlines, prefs, rulings, feed] = await Promise.all([
     listNotifications(ctx),
     getMyUpcomingDeadlines(ctx),
     getNotificationPreferences(ctx),
     getMyOpenRulingFollowups(ctx),
+    getMyCalendarFeed(ctx),
   ]);
   const unread = items.filter((n) => !n.read_at).length;
 
@@ -120,6 +124,33 @@ export default async function NotificationsPage() {
               ))}
             </ul>
           )}
+        </CardContent>
+      </Card>
+
+      <Card className="max-w-2xl" data-testid="calendar-card">
+        <CardHeader>
+          <CardTitle>{t.notifications.calendarTitle}</CardTitle>
+          <CardDescription>{t.notifications.calendarDescription}</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-3 text-sm">
+          <p className="text-xs text-muted-foreground">{t.notifications.calendarPrivacy}</p>
+          {feed && (
+            <p data-testid="calendar-status">
+              {t.notifications.calendarActive(
+                formatDateTime(feed.created_at, locale),
+                feed.last_used_at ? formatDateTime(feed.last_used_at, locale) : t.notifications.calendarNeverUsed,
+              )}
+            </p>
+          )}
+          <CalendarLinkForm submitLabel={feed ? t.notifications.calendarReplace : t.notifications.calendarCreate} />
+          {feed && (
+            <ActionForm action={revokeCalendarFeedAction}>
+              <SubmitButton variant="ghost" size="sm">
+                {t.notifications.calendarRevoke}
+              </SubmitButton>
+            </ActionForm>
+          )}
+          <p className="text-xs text-muted-foreground">{t.notifications.calendarHowTo}</p>
         </CardContent>
       </Card>
 

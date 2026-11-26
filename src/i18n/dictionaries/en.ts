@@ -268,6 +268,13 @@ export const en = {
     alertsNotFollowing: "You do not get alerts for this case.",
     follow: "Follow this case",
     unfollow: "Stop following",
+    clientNoteTitle: "Note for the client (draft)",
+    clientNoteHint:
+      "A template draft with the court’s exact wording. Check and edit it, then send it yourself. DosarIA never sends anything to clients and does not save this text.",
+    clientNoteRo: "In Romanian",
+    clientNoteEn: "In English",
+    copy: "Copy",
+    copied: "Copied",
     rulingsTitle: "Rulings: communication and appeal deadline",
     rulingsDescription:
       "An appeal deadline usually runs from the date the ruling is communicated, which the court portal does not show reliably. Record it here when you receive the ruling.",
@@ -328,7 +335,27 @@ export const en = {
     rulingTasksDescription: "Record when each ruling was communicated so its appeal deadline can be tracked. These items cannot be switched off.",
     rulingTask: (date: string) => `Ruling of ${date}: communication date needed`,
     decisionHint: "Record the communication date on the case to track the appeal deadline.",
+    calendarTitle: "Calendar link (Google Calendar, Outlook)",
+    calendarDescription:
+      "A private link that shows the hearings and confirmed deadlines of your cases in your own calendar. Calendar apps refresh it every few hours, so it is not instant.",
+    calendarPrivacy:
+      "Your calendar provider stores what the link contains: only the case number and the court name, never titles or party names. Anyone with the link can see those, so keep it private.",
+    calendarActive: (created: string, used: string) => `Active since ${created}. Last fetched: ${used}.`,
+    calendarNeverUsed: "not yet",
+    calendarCreate: "Create calendar link",
+    calendarReplace: "Replace link (the old one stops working)",
+    calendarRevoke: "Turn off the link",
+    calendarHowTo:
+      "Google Calendar: Other calendars → + → From URL. Outlook: Add calendar → Subscribe from web.",
     save: "Save settings",
+  },
+
+  /** Text inside the calendar feed itself (always Romanian in the feed; mirrored here for the type). */
+  calendar: {
+    name: "DosarIA — hearings and deadlines",
+    hearingSummary: (number: string) => `Hearing — case ${number}`,
+    deadlineSummary: (number: string) => `Confirmed deadline — case ${number}`,
+    description: (url: string) => `Details in DosarIA (sign-in required): ${url}`,
   },
 
   settings: {
@@ -492,6 +519,8 @@ export const en = {
       "ruling_followup.opened": "Ruling follow-up opened",
       "ruling_followup.status_changed": "Ruling follow-up updated",
       "ruling_followup.updated": "Communication date changed",
+      "calendar.link_created": "Calendar link created",
+      "calendar.link_revoked": "Calendar link turned off",
     } as Record<string, string>,
   },
 
@@ -550,6 +579,8 @@ export const en = {
     reminderAdded: "The deadline was added with the status “Proposed”. Confirm it after checking.",
     alertSettingsSaved: "Your alert settings have been saved.",
     communicationRecorded: "Saved. The deadline was added as “Proposed”: confirm it after checking.",
+    calendarLinkCreated: "Calendar link created.",
+    calendarLinkRevoked: "The calendar link has been turned off.",
   },
 
   monitoring: {
@@ -606,6 +637,10 @@ export const en = {
     inviteLinkHeading: "Invitation link (shown only once, valid until {date}):",
     inviteLinkHint:
       "Send the link through a trusted channel. It can only be accepted by the account with the invited email address, once that address is confirmed.",
+    calendarLinkHeading: "Your calendar link (shown only once):",
+    calendarLinkHint: "Paste it into your calendar app now. If you lose it, create a new one; the old one then stops working.",
+    copy: "Copy",
+    copied: "Copied",
   },
 };
 

@@ -97,6 +97,58 @@ const TERMS: Record<string, string> = {
   partaj: "Partition",
 };
 
+/**
+ * The official lists from the portal WSDL (portalquery.just.ro, types
+ * StadiuProcesual: 19 values, CategorieCaz: 11 values), keyed by the enum
+ * code. The portal may send either the code (no spaces or diacritics, e.g.
+ * "Recursinanulare") or a display name ("Recurs în anulare"); both are
+ * matched through compactTerm(). For lawyer review: docs/COURT-TERMS.md.
+ */
+export const PORTAL_STAGES: Record<string, string> = {
+  Fond: "First instance",
+  Apel: "Appeal",
+  Recurs: "Second appeal (on points of law)",
+  Recursinanulare: "Appeal for annulment",
+  Recursininteresullegii: "Appeal in the interest of the law",
+  Contestatie: "Challenge",
+  Revizuire: "Revision",
+  Contestatieinanulare: "Annulment challenge",
+  Stabilireacompetentei: "Determination of jurisdiction",
+  Recursimpotrivaincheierii: "Appeal against an interim ruling (încheiere)",
+  Recuzare: "Recusal of a judge",
+  Stramutare: "Transfer of venue",
+  Indreptareeroaremateriala: "Correction of a clerical error",
+  ContestatieinanulareFond: "Annulment challenge — first instance",
+  ContestatieinanulareApel: "Annulment challenge — appeal",
+  ContestatieinanulareRecurs: "Annulment challenge — second appeal",
+  RevizuireFond: "Revision — first instance",
+  RevizuireApel: "Revision — appeal",
+  RevizuireRecurs: "Revision — second appeal",
+};
+
+export const PORTAL_CATEGORIES: Record<string, string> = {
+  Penal: "Criminal",
+  Civil: "Civil",
+  Comercial: "Commercial",
+  Contenciosadministrativsifiscal: "Administrative and tax litigation",
+  Minorisifamilie: "Minors and family",
+  Litigiidemunca: "Labour disputes",
+  Altematerii: "Other matters",
+  Asigurarisociale: "Social insurance",
+  Faliment: "Bankruptcy",
+  ProprietateIntelectuala: "Intellectual property",
+  Dreptmaritimsifluvial: "Maritime and river law",
+};
+
+/** Letters and digits only, lower case, no diacritics: "Contestaţie în anulare/Fond" → "contestatieinanularefond". */
+export function compactTerm(text: string): string {
+  return normalizeTerm(text).replace(/[^a-z0-9]/g, "");
+}
+
+const OFFICIAL: Record<string, string> = Object.fromEntries(
+  [...Object.entries(PORTAL_STAGES), ...Object.entries(PORTAL_CATEGORIES)].map(([code, gloss]) => [compactTerm(code), gloss]),
+);
+
 const CITIES: Record<string, string> = { bucuresti: "Bucharest" };
 
 function city(name: string): string {
@@ -132,7 +184,7 @@ export function courtNameGloss(name: string): string | null {
 
 /** English gloss of a published court term (stage, status, outcome, subject); null if unknown. */
 export function courtTermGloss(term: string): string | null {
-  return TERMS[normalizeTerm(term)] ?? null;
+  return TERMS[normalizeTerm(term)] ?? OFFICIAL[compactTerm(term)] ?? null;
 }
 
 export type CourtText = { text: string; original: string | null };

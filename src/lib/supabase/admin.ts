@@ -15,6 +15,9 @@ import type { Database } from "./database.types";
  *     claim_due_case_checks (a service-role RPC), never from user input, and
  *     every write is scoped by organization_id AND case id.
  *   - src/server/dal/audit.ts: appending security audit events.
+ *   - src/server/calendar/feed.ts: the private calendar feed. It only calls
+ *     the service-role function calendar_feed with the hash of the link's
+ *     token; that function applies the same case visibility as alerts.
  *
  * Never use it for user-facing CRUD, never pass it to client components, and
  * always scope every statement by organization_id AND resource id.

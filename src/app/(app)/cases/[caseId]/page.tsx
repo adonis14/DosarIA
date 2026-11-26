@@ -8,6 +8,7 @@ import { followCaseAction } from "@/app/actions/notifications";
 import { createReminderAction, deleteReminderAction, reminderStatusAction } from "@/app/actions/reminders";
 import { recordCommunicationAction, rulingFollowupAction } from "@/app/actions/rulings";
 import { ActionForm, FieldError, SubmitButton } from "@/components/app/action-form";
+import { CopyableDraft } from "@/components/app/copyable-draft";
 import { CourtText } from "@/components/app/court-text";
 import { EmptyState } from "@/components/app/page-header";
 import {
@@ -28,6 +29,7 @@ import { label, type Dictionary, type Locale } from "@/i18n";
 import { getT } from "@/i18n/server";
 import { serverEnv } from "@/lib/env";
 import { formatDate, formatDateTime } from "@/lib/format";
+import { buildClientNote, type ClientNoteInput } from "@/lib/client-note";
 import { displayReminderText } from "@/lib/suggested-reminder";
 import { bucharestToday } from "@/lib/validation";
 import { isAdminOf, requireOrgPageContext, roleIn } from "@/server/context";
@@ -353,6 +355,18 @@ export default async function CaseDetailPage({ params }: PageProps<"/cases/[case
                     </span>
                   </div>
                   <EventSummary ro={e.summary_ro} en={e.summary_en} locale={locale} otherLabel={t.caseDetail.otherLanguageSummary} />
+                  <ClientNote
+                    eventId={e.id}
+                    input={{
+                      eventType: e.event_type,
+                      details: e.details ?? {},
+                      occurredOn: e.occurred_on,
+                      caseNumber: c.court_case_number,
+                      courtName: c.court_name,
+                      signer: nameOf.get(ctx.user.id) ?? null,
+                    }}
+                    t={t}
+                  />
                 </li>
               ))}
             </ol>
@@ -558,6 +572,23 @@ function RulingItem({
         </ActionForm>
       )}
     </li>
+  );
+}
+
+/** Template draft for the client, in Romanian and English; shown only when there is something to tell. */
+function ClientNote({ eventId, input, t }: { eventId: string; input: ClientNoteInput; t: Dictionary }) {
+  const ro = buildClientNote(input, "ro");
+  const en = buildClientNote(input, "en");
+  if (!ro || !en) return null;
+  return (
+    <details className="mt-3 rounded-md border p-3 text-sm" data-testid="client-note">
+      <summary className="cursor-pointer font-medium">{t.caseDetail.clientNoteTitle}</summary>
+      <p className="mt-2 text-xs text-muted-foreground">{t.caseDetail.clientNoteHint}</p>
+      <div className="mt-3 grid gap-4 lg:grid-cols-2">
+        <CopyableDraft id={`note-ro-${eventId}`} label={t.caseDetail.clientNoteRo} text={ro} lang="ro" copyLabel={t.caseDetail.copy} copiedLabel={t.caseDetail.copied} />
+        <CopyableDraft id={`note-en-${eventId}`} label={t.caseDetail.clientNoteEn} text={en} lang="en" copyLabel={t.caseDetail.copy} copiedLabel={t.caseDetail.copied} />
+      </div>
+    </details>
   );
 }
 

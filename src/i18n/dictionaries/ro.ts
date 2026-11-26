@@ -264,6 +264,13 @@ export const ro: Dictionary = {
     alertsNotFollowing: "Nu primiți alerte pentru acest dosar.",
     follow: "Urmăriți dosarul",
     unfollow: "Nu mai urmăriți",
+    clientNoteTitle: "Notă pentru client (ciornă)",
+    clientNoteHint:
+      "Ciornă generată după un model, cu formularea exactă a instanței. Verificați-o și modificați-o, apoi trimiteți-o dvs. DosarIA nu trimite nimic clienților și nu salvează acest text.",
+    clientNoteRo: "În română",
+    clientNoteEn: "În engleză",
+    copy: "Copiați",
+    copied: "Copiat",
     rulingsTitle: "Hotărâri: comunicare și termen de cale de atac",
     rulingsDescription:
       "Termenul de cale de atac curge de regulă de la comunicarea hotărârii, iar portalul instanțelor nu afișează sigur această dată. Înregistrați-o aici când primiți hotărârea.",
@@ -324,7 +331,27 @@ export const ro: Dictionary = {
     rulingTasksDescription: "Înregistrați data comunicării fiecărei hotărâri pentru a urmări termenul de cale de atac. Aceste elemente nu pot fi dezactivate.",
     rulingTask: (date: string) => `Hotărârea din ${date}: lipsește data comunicării`,
     decisionHint: "Înregistrați data comunicării în dosar pentru a urmări termenul de cale de atac.",
+    calendarTitle: "Link de calendar (Google Calendar, Outlook)",
+    calendarDescription:
+      "Un link privat care afișează termenele de judecată și termenele confirmate din dosarele dvs. în propriul calendar. Aplicațiile de calendar îl actualizează la câteva ore, deci nu instantaneu.",
+    calendarPrivacy:
+      "Furnizorul de calendar stochează ce conține linkul: doar numărul dosarului și instanța, niciodată titluri sau nume de părți. Oricine are linkul le poate vedea, deci păstrați-l privat.",
+    calendarActive: (created: string, used: string) => `Activ din ${created}. Ultima preluare: ${used}.`,
+    calendarNeverUsed: "încă nu",
+    calendarCreate: "Creați linkul de calendar",
+    calendarReplace: "Înlocuiți linkul (cel vechi nu mai funcționează)",
+    calendarRevoke: "Dezactivați linkul",
+    calendarHowTo:
+      "Google Calendar: Alte calendare → + → Din adresa URL. Outlook: Adăugați calendar → Abonare de pe web.",
     save: "Salvați setările",
+  },
+
+  /** Textul din fluxul de calendar (în română). */
+  calendar: {
+    name: "DosarIA — termene de judecată și termene",
+    hearingSummary: (number: string) => `Termen de judecată — dosar ${number}`,
+    deadlineSummary: (number: string) => `Termen confirmat — dosar ${number}`,
+    description: (url: string) => `Detalii în DosarIA (necesită autentificare): ${url}`,
   },
 
   settings: {
@@ -488,6 +515,8 @@ export const ro: Dictionary = {
       "ruling_followup.opened": "Urmărire hotărâre deschisă",
       "ruling_followup.status_changed": "Urmărire hotărâre actualizată",
       "ruling_followup.updated": "Data comunicării modificată",
+      "calendar.link_created": "Link de calendar creat",
+      "calendar.link_revoked": "Link de calendar dezactivat",
     },
   },
 
@@ -546,6 +575,8 @@ export const ro: Dictionary = {
     reminderAdded: "Termenul a fost adăugat cu statutul „Propus”. Confirmați-l după verificare.",
     alertSettingsSaved: "Setările de alertă au fost salvate.",
     communicationRecorded: "Salvat. Termenul a fost adăugat ca „Propus”: confirmați-l după verificare.",
+    calendarLinkCreated: "Linkul de calendar a fost creat.",
+    calendarLinkRevoked: "Linkul de calendar a fost dezactivat.",
   },
 
   monitoring: {
@@ -598,5 +629,9 @@ export const ro: Dictionary = {
     inviteLinkHeading: "Link de invitație (afișat o singură dată, valabil până la {date}):",
     inviteLinkHint:
       "Transmiteți linkul printr-un canal de încredere. Poate fi acceptat doar de contul cu adresa de e-mail invitată, după confirmarea acesteia.",
+    calendarLinkHeading: "Linkul dvs. de calendar (afișat o singură dată):",
+    calendarLinkHint: "Lipiți-l acum în aplicația de calendar. Dacă îl pierdeți, creați altul; cel vechi nu va mai funcționa.",
+    copy: "Copiați",
+    copied: "Copiat",
   },
 };

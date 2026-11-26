@@ -25,6 +25,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"calendar_feeds": {
+                  Row: {
+                    "created_at": string,"id": string,"last_used_at": string | null,"organization_id": string,"revoked_at": string | null,"token_hash": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"last_used_at"?: string | null,"organization_id": string,"revoked_at"?: string | null,"token_hash": string,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"last_used_at"?: string | null,"organization_id"?: string,"revoked_at"?: string | null,"token_hash"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "calendar_feeds_member_fk"
+      columns: ["organization_id","user_id"]
+isOneToOne: false
+      referencedRelation: "organization_memberships"
+      referencedColumns: ["organization_id","user_id"]
+    }
+                  ]
                 },"case_check_schedule": {
                   Row: {
                     "case_id": string,"claimed_until": string | null,"next_check_at": string,"organization_id": string,"reason": string,"updated_at": string
@@ -428,6 +448,11 @@ isOneToOne: false
             "accept_invitation":
 { Args: { "p_token": string }; Returns: string
                            },
+"calendar_feed":
+{ Args: { "p_token_hash": string }; Returns: {
+              "case_id": string,"court_case_number": string,"court_name": string,"item_date": string,"item_key": string,"item_kind": string,"item_time": string
+            }[]
+                           },
 "claim_due_case_checks":
 { Args: { "p_lease_seconds"?: number,"p_limit": number,"p_organization_id"?: string }; Returns: {
               "case_id": string,"court_case_number": string,"court_name": string,"last_check_attempt_at": string,"last_check_outcome": Database["public"]['Enums']["check_outcome"],"matter_type": Database["public"]['Enums']["matter_type"],"organization_id": string
@@ -451,6 +476,9 @@ isOneToOne: false
                            },
 "record_ruling_communication":
 { Args: { "p_communicated_on": string,"p_deadline_date": string,"p_deadline_title": string,"p_followup_id": string }; Returns: string
+                           },
+"replace_calendar_feed":
+{ Args: { "p_organization_id": string,"p_token_hash": string }; Returns: string
                            }
           }
           Enums: {

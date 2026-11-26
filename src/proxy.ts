@@ -22,6 +22,8 @@ const PUBLIC_PATHS = [
   "/auth/error",
   // Machine-to-machine endpoints: no session, authenticated by their own shared secret.
   "/api/internal",
+  // Private calendar feeds: fetched by calendar apps; the secret token in the URL is the credential.
+  "/api/calendar",
 ];
 
 function isPublic(pathname: string) {

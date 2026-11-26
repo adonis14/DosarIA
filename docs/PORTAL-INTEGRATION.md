@@ -1,19 +1,58 @@
 # portal.just.ro SOAP integration — findings and enablement gate
 
-Status (2026-11-25): **implemented behind a disabled feature flag; NOT approved for use.**
+Status (updated 2026-11-27): **implemented behind a disabled feature flag; NOT approved for use.**
 The mock provider remains the default. Nothing in the application polls the portal.
 
 ## 1. Evidence base
 
-Everything below was established on 2026-11-25 from one of three sources:
+Sections 2–6 were established on 2026-11-25. Section 1a adds what was read in a browser on 2026-11-26.
 
 | Source | How it was obtained |
 |---|---|
 | WSDL `http://portalquery.just.ro/query.asmx?WSDL` | Fetched once and parsed. The court list was generated from it into `institutions.generated.ts`. |
 | Official sample request/response pages `?op=CautareDosare`, `?op=CautareSedinte` | Fetched once each. |
 | Live validation run (`npm run test:portal-live`) | Two runs, ≤ 3 requests each: one HTTPS probe through the real provider, one public hearing list, one public case. The report contains no personal data. |
-| portal.just.ro terms (`/SitePages/termeni.aspx`), programmatic-access page (`/SitePages/acces.aspx`), service documentation (.doc) | **Not read.** All return HTTP 403 to automated clients (Cloudflare bot protection). Deliberately not circumvented. |
-| Web search snippets about those pages | Secondary and unverified. Marked as such below. |
+| portal.just.ro terms (`/SitePages/termeni.aspx`), programmatic-access page (`/SitePages/acces.aspx`) | Return HTTP 403 to automated clients (Cloudflare bot protection); deliberately not circumvented. **Read by a person in a browser on 2026-11-26** (see §1a). |
+| Official service documentation (.doc, "Documentarea serviciului web de conectare programatică la date şi export") and the official sample client (`PortalWSClient`, C#) | Downloaded by a person from the access page on 2026-11-26 and read locally (see §1a). |
+| Web search snippets about those pages | Secondary. Superseded by §1a where the official pages answer the question. |
+
+## 1a. Official pages, read in a browser (2026-11-26)
+
+These are notes, not copies. **Archive the original pages and files** (PDF or HTML saved from the browser, the .doc
+and the sample client) in the project's private document store before the pilot, with the date they were read.
+
+**Service documentation (.doc), version 1.0, 21/12/2012, author Indaco ("Prima versiune")**
+- The Ministry publishes the SOAP service officially. Access to the methods is **without authentication**.
+- The only addresses given are **`http://`** (`http://portalquery.just.ro/Query.asmx` and its `?WSDL`). The sample
+  client also uses `http://`. No HTTPS address is documented.
+- `CautareDosare`: **at most 1,000 cases** are returned per query; at least one of `numarDosar`, `obiectDosar`,
+  `numeParte` is **required**; court and date range can narrow the result.
+- Nothing about commercial use, request limits or a contact for integrators.
+
+**Sample client (`PortalWSClient`)**: its WSDL confirms the official enumerations, including the **19 procedural
+stages** and the **11 case categories** now glossed in `src/i18n/court-terms.ts` (review list:
+`docs/COURT-TERMS.md`).
+
+**"Acces programatic" page**: presents the service for programmatic access and links the documentation and sample
+client above. Same `http://` address. Nothing about commercial use or rate limits.
+
+**"Termeni și condiții" page (last updated 30.07.2020)**
+- Does not forbid automated or commercial use. Reproduction is allowed **if the source is credited**.
+- The data is **"informative"**: not necessarily complete or current. The Ministry accepts no liability.
+- Data is copied from ECRIS **every night** and may lag by **up to 24 hours**.
+- The courts own the data.
+- Cases stay on the portal for **3 years** after they end. Courts can mark a case confidential, which removes it.
+- The terms can change at any time without notice.
+
+**What this means for DosarIA**
+- Credit the source on every page that shows portal data (to do when the provider is enabled).
+- Never present portal data as complete or official. The app already labels it "simulated" or "from the source",
+  and summaries as "not legal advice".
+- A nightly copy with up to 24 h delay limits how fresh any check can be. Frequent checks after a hearing help only
+  if the copy is updated more often than nightly in practice. **Confirm with real cases** before relying on the
+  30-minute schedule.
+- Re-read the terms before go-live and periodically, since they can change without notice.
+- Agora Origin (Delia) believes the Ministry will not fix HTTPS or reply; she will ask around (2026-11-26).
 
 ## 2. Endpoint and transport — BLOCKER
 
@@ -69,15 +108,13 @@ Namespace `portalquery.just.ro`, SOAP 1.1/1.2, no authentication, no API key.
 | `solutieSumar` contains party / practitioner names | **Yes** |
 | Rate-limit headers / HTTP 429 | None observed at this volume. Limits are unknown. |
 
-Unverified secondary sources (search snippets about the official pages):
-- The service is "intended for applications developed by third parties".
-- At least one of number, subject or party is required.
-- Results are capped at 1,000 per query (one source says 10,000). The 1,001
-  entries above may hint at a cap on hearing lists.
-- Delays versus ECRIS are "generally not more than 24 hours".
-- Confidential cases are not published.
-
-**All of these must be confirmed by a person reading the official pages in a browser.**
+Earlier search snippets, now checked against the official pages (§1a):
+- At least one of number, subject or party is required: **confirmed** (documentation).
+- Results are capped at 1,000 cases per query: **confirmed** for `CautareDosare` (documentation). The 1,001
+  entries seen in one hearing list may hint at a similar cap there; not documented.
+- Delays versus ECRIS: the terms say a **nightly** copy, up to **24 hours** behind.
+- Confidential cases are removed from the portal: **confirmed** (terms).
+- "Intended for applications developed by third parties": not stated in these words on the pages read.
 
 ## 5. Implementation (feature-flagged)
 
@@ -120,6 +157,9 @@ and `PORTAL_JUST_TIMEOUT_MS`.
       **acces programatic** page and documentation. Automated use for a
       commercial service is confirmed to be permitted, and any request-volume
       limits are recorded.
+      *Progress (2026-11-26): read in a browser, notes in §1a. The terms do not forbid automated or commercial
+      use and allow reuse with credit; no volume limits are published. Still to do: archive the pages, and get
+      a legal opinion that "not forbidden" is enough.*
 - [ ] Written confirmation (or no objection) from the portal operator for the
       intended volume. Contact details recorded.
 - [ ] **HTTPS works end to end** (no 525), verified with `npm run test:portal-live`.

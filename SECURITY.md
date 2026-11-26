@@ -31,7 +31,7 @@ Primary threats, in priority order:
 | Column grants | `UPDATE` is granted per column. `organization_id`, `created_by`, monitoring state and confirmation metadata are not writable by users at the privilege level. | `…0200` |
 | Guard triggers | Assignment changes are admin-only. Org and user keys are immutable. No self-role changes; the last active admin is protected. Reminder status transitions are validated. Confirmation requires an authenticated lawyer or admin and is stamped server-side. Invitations can only be revoked. | `…0300_guards_and_audit.sql` |
 | Referential integrity | Composite FKs `(organization_id, case_id)` and `(organization_id, assigned_user_id)` make cross-firm association impossible, **even for the service role**. | `…0100_schema.sql` |
-| Server-only privileged access | The service-role key is used only by `check-case.ts` (manual checks after RLS-verified access; scheduled checks on cases handed out by the service-role RPC `claim_due_case_checks`), `scheduler.ts` and `dal/audit.ts`. An ESLint rule forbids importing it anywhere else. It is never in a `NEXT_PUBLIC_*` variable. | `src/lib/supabase/admin.ts`, `eslint.config.mjs` |
+| Server-only privileged access | The service-role key is used only by `check-case.ts` (manual checks after RLS-verified access; scheduled checks on cases handed out by the service-role RPC `claim_due_case_checks`), `scheduler.ts`, `dal/audit.ts` and `calendar/feed.ts` (the private calendar feed, which only calls the service-role function `calendar_feed` with the hash of the link's token). An ESLint rule forbids importing it anywhere else. It is never in a `NEXT_PUBLIC_*` variable. | `src/lib/supabase/admin.ts`, `eslint.config.mjs` |
 | DAL | Strict Zod schemas (unknown keys rejected). Whitelisted form keys. App-level role checks. `organization_id` taken from verified rows. Minimal column selection. “Not found” and “forbidden” are indistinguishable. | `src/server/dal/*` |
 
 SECURITY DEFINER functions live in the unexposed `private` schema, use
@@ -67,6 +67,20 @@ ownership audit query.
   stores references (case, event, reminder), not copies of case content. Alerts
   go to the case's assigned lawyer and assistant and to opt-in followers who
   can read the case, never to the whole firm.
+- **Private calendar link** (`GET /api/calendar/<token>.ics`):
+  - The token in the URL is the credential. It is 32 random bytes, and only its
+    SHA-256 hash is stored. The link is shown once; it can be replaced (the old
+    one is revoked) or turned off.
+  - Invalid, revoked and inactive-member links all get the same 404, and the
+    route is rate-limited per link.
+  - Calendar providers (Google, Microsoft) store what they fetch, so the feed
+    holds only case numbers, court names and dates.
+  - The token appears in URLs, so production must not log full request paths
+    for `/api/calendar` (configure the host's access logs), and the link must
+    only ever be served over HTTPS. `APP_URL` must be `https` in production,
+    and links are built from it.
+- **Client note**: a template draft rendered on the case page. Nothing is sent
+  to clients and the draft is not stored.
 - **CSRF**: mutations are Server Actions only (POST). Next.js checks
   `Origin` against `Host`, and `SameSite=Lax` cookies add a second layer. The
   only GET route handler (`/auth/confirm`) consumes single-use tokens and

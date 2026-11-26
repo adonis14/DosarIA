@@ -15,6 +15,8 @@ export type CaseEventRow = {
     | "status_changed"
     | "stage_changed";
   occurred_on: string | null;
+  /** Minimal facts (dates, the court's published wording); see diff.ts. */
+  details: Record<string, string | null>;
   summary_ro: string;
   summary_en: string | null;
   summary_source: string;
@@ -33,7 +35,7 @@ export type MonitoringRunRow = {
 };
 
 const EVENT_COLUMNS =
-  "id, case_id, event_type, occurred_on, summary_ro, summary_en, summary_source, requires_review, detected_at";
+  "id, case_id, event_type, occurred_on, details, summary_ro, summary_en, summary_source, requires_review, detected_at";
 
 /** Events of one case; RLS returns nothing unless the caller may read the parent case. */
 export async function getAuthorizedCaseEvents(ctx: AuthContext, caseId: string, limit = 100): Promise<CaseEventRow[]> {

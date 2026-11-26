@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_LOCALE, getDictionary, interpolate, LOCALES, resolveLocale } from "@/i18n";
-import { courtNameGloss, courtTermGloss, courtTermInline, displayCourtTerm } from "@/i18n/court-terms";
+import {
+  courtNameGloss,
+  courtTermGloss,
+  courtTermInline,
+  displayCourtTerm,
+  PORTAL_CATEGORIES,
+  PORTAL_STAGES,
+} from "@/i18n/court-terms";
 import { en } from "@/i18n/dictionaries/en";
 import { ro } from "@/i18n/dictionaries/ro";
 import { formatDate } from "@/lib/format";
@@ -64,6 +71,22 @@ describe("court terms: English gloss with the Romanian original kept", () => {
     expect(courtTermGloss("Alte soluţii")).toBe("Other outcome"); // cedilla ţ, as the portal publishes it
     expect(courtTermGloss("Termen preschimbat")).toBe("Hearing date changed");
     expect(courtTermGloss("Soluționat (dedus din ședințe)")).toBe("Decided (derived from hearings)");
+  });
+
+  it("covers every official stage (19) and category (11) from the portal WSDL, as codes and as display names", () => {
+    expect(Object.keys(PORTAL_STAGES)).toHaveLength(19);
+    expect(Object.keys(PORTAL_CATEGORIES)).toHaveLength(11);
+    for (const [code, gloss] of [...Object.entries(PORTAL_STAGES), ...Object.entries(PORTAL_CATEGORIES)]) {
+      expect(courtTermGloss(code)).toBe(gloss);
+    }
+    expect(courtTermGloss("Recurs în anulare")).toBe("Appeal for annulment");
+    expect(courtTermGloss("Contestaţie în anulare/Fond")).toBe("Annulment challenge — first instance");
+    expect(courtTermGloss("Recurs împotriva încheierii")).toBe("Appeal against an interim ruling (încheiere)");
+    expect(courtTermGloss("Contencios administrativ şi fiscal")).toBe("Administrative and tax litigation");
+    expect(courtTermGloss("Litigii de muncă")).toBe("Labour disputes");
+    expect(courtTermGloss("Proprietate intelectuală")).toBe("Intellectual property");
+    // Unknown wording is never guessed.
+    expect(courtTermGloss("Etapă necunoscută")).toBeNull();
   });
 
   it("builds court-name glosses from the standard patterns", () => {

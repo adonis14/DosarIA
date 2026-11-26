@@ -14,6 +14,7 @@ const eslintConfig = defineConfig([
       "src/server/monitoring/check-case.ts",
       "src/server/monitoring/scheduler.ts",
       "src/server/dal/audit.ts",
+      "src/server/calendar/feed.ts",
       "src/lib/supabase/admin.ts",
     ],
     rules: {
@@ -23,13 +24,13 @@ const eslintConfig = defineConfig([
           paths: [
             {
               name: "@/lib/supabase/admin",
-              message: "The service-role client bypasses RLS. Only check-case.ts, scheduler.ts and dal/audit.ts may use it.",
+              message: "The service-role client bypasses RLS. Only check-case.ts, scheduler.ts, dal/audit.ts and calendar/feed.ts may use it.",
             },
           ],
           patterns: [
             {
               group: ["**/supabase/admin"],
-              message: "The service-role client bypasses RLS. Only check-case.ts, scheduler.ts and dal/audit.ts may use it.",
+              message: "The service-role client bypasses RLS. Only check-case.ts, scheduler.ts, dal/audit.ts and calendar/feed.ts may use it.",
             },
           ],
         },

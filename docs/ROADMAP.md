@@ -73,6 +73,10 @@ These are **not started**, and will not be without written approval:
     re-downloading unchanged files
   - a global request budget and back-off on 429/5xx
   - confirm the timings with real cases (when do results actually appear?)
+- ✅ **Client note (built)**: a template draft per court update, with the court's exact wording; nothing is sent or stored. AI rewording stays in Phase D.
+- ✅ **Private calendar link (built)**: ICS feed of hearings and confirmed deadlines, case number and court only. Needs the HTTPS staging address to be used from Google.
+- ✅ **Court terms**: all 19 official stages and 11 categories glossed; review list in `docs/COURT-TERMS.md`.
+- 📝 **Deadline rules draft** for lawyer review: `docs/DEADLINE-RULES-DRAFT.md` (not verified against the official text; not used by the app).
 - ✅ **Ruling follow-up (built)**: every detected ruling opens a “communication date needed” task; the lawyer enters the communication date and their own deadline (no calculation). See ARCHITECTURE.md §7.
 - ⚠️ **Procedural deadline calculation**: a deterministic, versioned rules
   engine, with every rule linked to the NCPC article and reviewed by a lawyer,
