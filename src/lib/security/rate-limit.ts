@@ -45,4 +45,7 @@ export const LIMITS = {
   monitoringPerCase: { limit: 1, windowMs: 5_000 },
   monitoringPerUser: { limit: 30, windowMs: 60_000 },
   securityLogPerActor: { limit: 30, windowMs: 60_000 },
+  caseImport: { limit: 10, windowMs: 60 * 60_000 },
+  /** Wrong codes per account; Supabase Auth limits verification attempts as well. */
+  mfaVerify: { limit: 5, windowMs: 5 * 60_000 },
 } as const;

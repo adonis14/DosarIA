@@ -179,6 +179,40 @@ date. The automated tests use synthetic rulings with past dates.
   - A local `http://localhost` link only works on your own machine; Google
     needs a public HTTPS address (staging).
 
+## Import, labels and notes
+
+- **Import:** on **Dosare**, press **Import**. Choose a CSV file saved from
+  Excel or Google Sheets, or paste cells copied from the spreadsheet.
+  - Only the case number and the court are required. Headers may be in
+    Romanian or English (`Număr dosar`, `Instanță`, `Titlu`, `Materie`,
+    `Avocat`); without a header, columns are read in that order.
+  - **Previzualizare** checks every row and saves nothing. Duplicates (in the
+    file or already monitored) and invalid rows are listed with the reason and
+    skipped. Confirm to import the rest; the server checks everything again.
+  - Up to 500 rows per import. Lawyers import cases for themselves; an
+    administrator can name a lawyer per row (email or name) or pick a default.
+  - Excel's Romanian CSV (semicolons, Windows-1250 encoding) is read correctly.
+- **Labels:** colour labels such as “Client A” or “Pro bono”, shared by the
+  firm. Add them on a case (**Etichete**), filter the case list by label, and
+  manage them under **Gestionați etichetele**. Admins change any label, lawyers
+  the ones they created.
+- **Notes:** internal notes on each case (**Notițe**). Tick **Doar eu** to keep
+  a note private: colleagues, including admins, do not see it in the app. Notes
+  are never sent to the client, the court portal or any AI service.
+
+## Two-step verification
+
+On **Profil**, press **Activați verificarea în doi pași**, scan the QR code with
+an authenticator app (Google Authenticator, Microsoft Authenticator,
+1Password…) and enter the 6-digit code. From then on, every sign-in asks for a
+code after the password. A backup device can be added; removing a device needs
+a current code.
+
+The database enforces it: once a user has turned it on, a session opened with
+the password alone gets no data at all, even through the API. Users who have
+not turned it on are unaffected. The local Supabase config enables TOTP; a
+hosted project must enable it as well (Authentication → Multi-Factor).
+
 ## Automatic checks (smart schedule)
 
 Off by default; cases are then checked only when someone presses the button.

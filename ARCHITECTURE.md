@@ -61,6 +61,26 @@ data access go through Server Actions or Route Handlers. As a result:
 A “not found” and a “not authorized” are deliberately indistinguishable to the
 caller (the `notFound()` page for both), so probing UUIDs reveals nothing.
 
+### Two-step verification
+
+Users can turn on an authenticator-app code (Supabase Auth TOTP). Enforcement
+is in the database, not the app:
+
+- `private.mfa_satisfied()` is true when the session's JWT has `aal = aal2`,
+  or when the user has no verified factor.
+- Every table in `public` has a **restrictive** policy `mfa_required` that
+  requires it, AND-ed with the existing policies. The two RPCs that write
+  through `SECURITY DEFINER` helpers (`create_organization`,
+  `accept_invitation`) check it explicitly.
+- `public.security_self_check()` (service role only) lists tables missing RLS
+  or the policy; the integration tests require both lists to be empty, so a
+  future table cannot forget it.
+
+In the app, `getAuthContext()` returns nothing for a session that still owes
+its code, and pages redirect it to `/auth/mfa`. Setup, sign-in and removal are
+in `src/server/mfa.ts`. Recovery codes are not available (Supabase marks them
+experimental), so a user who loses every device is reset by an operator.
+
 ## 3. Data model
 
 All primary keys are UUIDs, except `audit_logs.id` (an identity bigint).
@@ -83,6 +103,9 @@ Migrations: `supabase/migrations/`.
 | `notification_preferences` | Per person, per firm: `court_updates`, `check_problems` (both default on). Deadline alerts have no setting. |
 | `case_followers` | Opt-in: a person who can read a case chooses to get its alerts. |
 | `calendar_feeds` | One private calendar link per person per firm. Only the SHA-256 hash of the link's token is stored. |
+| `case_labels` | Colour labels of a firm (fixed palette, name unique per firm ignoring case). |
+| `case_label_assignments` | Labels on cases. Composite keys keep the label and the case in the same firm. |
+| `case_notes` | Internal notes: `visibility` `team` (everyone who can read the case) or `private` (author only). The text is never copied to audit entries, notifications, the calendar feed or logs. |
 
 ### Cross-tenant integrity (enforced by the database)
 
@@ -130,6 +153,9 @@ operation. `anon` has no privileges on any table.
 | `case_followers` | Own rows | Self, on a readable case | ✗ | Own rows | — |
 | `ruling_followups` | Readable case | ✗ (trigger on ruling events) | Writable case, admin or lawyer: `status`, `communicated_on`, `reminder_id`, `note`. Transitions, dates and the linked deadline are validated; `resolved_by` / `resolved_at` are set by the server. | ✗ | RPC `record_ruling_communication` (`SECURITY INVOKER`) |
 | `calendar_feeds` | Own rows, without `token_hash` | Own row (via RPC `replace_calendar_feed`, which revokes the previous link) | Own row: `revoked_at` only, once | ✗ | `calendar_feed(hash)` (service role only) |
+| `case_labels` | Members | Admins and lawyers; `created_by` forced | Admins: any label. Lawyers: labels they created. `name`, `color` only. | Same as UPDATE (removes it from every case) | — |
+| `case_label_assignments` | Readable case | Writable case | ✗ | Writable case | — |
+| `case_notes` | Readable case: team notes, plus the caller's own private notes | Readable case (assistants included); `author_id` forced | Author only: `body`, `visibility` | Author only | — |
 | `audit_logs` | Admins of that organization | ✗ (triggers; service role for security events) | ✗ for everyone, including the service role | ✗ for everyone, except owner-only purge with an explicit flag | `private.write_audit`, `dal/audit.ts` |
 
 ### SECURITY DEFINER functions

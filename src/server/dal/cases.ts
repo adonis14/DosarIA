@@ -48,14 +48,18 @@ export async function getAuthorizedCases(ctx: AuthContext, rawFilters: Partial<C
   if (!ctx.activeOrg) return [];
   const filters = caseFiltersSchema.parse(rawFilters);
 
+  // Label filter: an inner join on the case's labels (RLS applies to both tables).
+  const columns: string =
+    filters.label === "all" ? CASE_COLUMNS : `${CASE_COLUMNS}, label_filter:case_label_assignments!inner(label_id)`;
   let query = ctx.supabase
     .from("cases")
-    .select(CASE_COLUMNS)
+    .select(columns)
     // UX scoping to the selected organization. Authorization is RLS.
     .eq("organization_id", ctx.activeOrg.organizationId)
     .order("updated_at", { ascending: false })
     .limit(200);
 
+  if (filters.label !== "all") query = query.eq("label_filter.label_id", filters.label);
   if (filters.status !== "all") query = query.eq("status", filters.status);
   if (filters.matterType !== "all") query = query.eq("matter_type", filters.matterType);
   if (filters.assignee === "me") query = query.eq("assigned_user_id", ctx.user.id);
@@ -72,7 +76,10 @@ export async function getAuthorizedCases(ctx: AuthContext, rawFilters: Partial<C
     logServerError("getAuthorizedCases", error);
     throw new Error("Could not load cases");
   }
-  return (data ?? []) as CaseRow[];
+  return ((data ?? []) as unknown as (CaseRow & { label_filter?: unknown })[]).map((row) => {
+    delete row.label_filter;
+    return row;
+  });
 }
 
 /**

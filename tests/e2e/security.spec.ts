@@ -3,7 +3,7 @@ import { testEnv } from "../helpers/env";
 import { login, world } from "./helpers";
 
 test.describe("unauthenticated access (Scenario F, through the app)", () => {
-  for (const path of ["/dashboard", "/cases", "/settings", "/cases/new", "/notifications"]) {
+  for (const path of ["/dashboard", "/cases", "/settings", "/cases/new", "/notifications", "/cases/import", "/cases/labels", "/profile", "/auth/mfa"]) {
     test(`${path} redirects to login`, async ({ page }) => {
       await page.goto(path);
       await expect(page).toHaveURL(/\/login\?next=/);

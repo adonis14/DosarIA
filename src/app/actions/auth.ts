@@ -9,6 +9,8 @@ import { fail, logServerError, type ActionResult } from "@/lib/errors";
 import { LIMITS, rateLimit } from "@/lib/security/rate-limit";
 import { safeNextPath } from "@/lib/security/redirects";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getAuthContext, getMfaPendingSession } from "@/server/context";
+import { verifySignIn } from "@/server/mfa";
 import {
   fieldErrorsOf,
   forgotPasswordSchema,
@@ -49,8 +51,32 @@ export async function loginAction(_prev: ActionResult | null, formData: FormData
     // Same message for unknown email and wrong password (no account enumeration).
     return fail(t, "unauthenticated", t.errors.badCredentials);
   }
+  const next = safeNextPath(parsed.data.next);
+  // Two-step verification on: a password-only session sees no data until the code is entered.
+  if ((data.user.factors ?? []).some((f) => f.status === "verified")) {
+    redirect(`/auth/mfa?next=${encodeURIComponent(next)}`);
+  }
   await syncLocaleAfterLogin(supabase, data.user.id);
-  redirect(safeNextPath(parsed.data.next));
+  redirect(next);
+}
+
+/** Second sign-in step: the 6-digit code from the authenticator app. */
+export async function mfaSignInAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const t = await getT();
+  const session = await getMfaPendingSession();
+  if (!session) {
+    // Already upgraded (e.g. a second tab) or signed out.
+    if (await getAuthContext()) redirect("/dashboard");
+    return fail(t, "unauthenticated");
+  }
+  if (!rateLimit(`mfa:ip:${await clientIp()}`, LIMITS.mfaVerify.limit * 4, LIMITS.mfaVerify.windowMs).ok) {
+    return fail(t, "rate_limited");
+  }
+  const result = await verifySignIn(session.supabase, session.user.id, t, formToObject(formData, ["code"]));
+  if (!result.ok) return result;
+  await syncLocaleAfterLogin(session.supabase, session.user.id);
+  const next = formData.get("next");
+  redirect(safeNextPath(typeof next === "string" ? next : null));
 }
 
 /**

@@ -6,6 +6,7 @@ import { getDictionary, type Dictionary, type Locale } from "@/i18n";
 import { getLocale } from "@/i18n/server";
 import { createSupabaseServerClient, type UserSupabaseClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
+import { isMfaPending } from "@/server/mfa";
 
 export type Role = Database["public"]["Enums"]["membership_role"];
 
@@ -37,13 +38,29 @@ export const ACTIVE_ORG_COOKIE = "dosaria_active_org";
  * Roles: read from organization_memberships through RLS, never from JWT
  * or user metadata.
  */
-export const getAuthContext = cache(async (): Promise<AuthContext | null> => {
+const getSessionUser = cache(async () => {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
     error,
   } = await supabase.auth.getUser();
   if (error || !user) return null;
+  return { supabase, user, mfaPending: await isMfaPending(supabase, user) };
+});
+
+/**
+ * A signed-in session that still has to enter its two-step code. Such a
+ * session gets no AuthContext (the database would return nothing anyway).
+ */
+export const getMfaPendingSession = cache(async () => {
+  const session = await getSessionUser();
+  return session?.mfaPending ? { supabase: session.supabase, user: session.user } : null;
+});
+
+export const getAuthContext = cache(async (): Promise<AuthContext | null> => {
+  const session = await getSessionUser();
+  if (!session || session.mfaPending) return null;
+  const { supabase, user } = session;
 
   const { data: rows, error: membershipError } = await supabase
     .from("organization_memberships")
@@ -77,7 +94,7 @@ export const getAuthContext = cache(async (): Promise<AuthContext | null> => {
 /** For pages: redirect anonymous visitors to the login page. */
 export async function requirePageContext(): Promise<AuthContext> {
   const ctx = await getAuthContext();
-  if (!ctx) redirect("/login");
+  if (!ctx) redirect((await getMfaPendingSession()) ? "/auth/mfa" : "/login");
   return ctx;
 }
 

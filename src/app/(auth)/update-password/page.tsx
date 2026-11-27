@@ -5,13 +5,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getT } from "@/i18n/server";
-import { requirePageContext } from "@/server/context";
+import { redirect } from "next/navigation";
+import { getMfaPendingSession, requirePageContext } from "@/server/context";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getT()).meta.updatePassword };
 }
 
 export default async function UpdatePasswordPage() {
+  // Two-step users (e.g. arriving from a reset link) enter their code first, then come back here.
+  if (await getMfaPendingSession()) redirect("/auth/mfa?next=/update-password");
   const { t } = await requirePageContext();
   return (
     <Card>

@@ -21,7 +21,7 @@ export type SecurityEvent = {
   organizationId?: string | null;
 };
 
-export async function logSecurityEvent(ctx: AuthContext | null, event: SecurityEvent): Promise<void> {
+export async function logSecurityEvent(ctx: { user: Pick<AuthContext["user"], "id"> } | null, event: SecurityEvent): Promise<void> {
   const actorKey = ctx?.user.id ?? "anonymous";
   if (!rateLimit(`seclog:${actorKey}`, LIMITS.securityLogPerActor.limit, LIMITS.securityLogPerActor.windowMs).ok) {
     return;

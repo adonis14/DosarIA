@@ -14,6 +14,10 @@ Legend: ✅ done and verified · 🔒 blocked by an external dependency · ⚠�
   - HTTPS-only, strict XML handling, exact court and number matching
   - Party list minimized, per-file minimum interval, unit-tested with no network
 - ✅ Opt-in live validation harness (`npm run test:portal-live`), outside CI.
+- ✅ **Import, labels, notes, two-step verification** (2026-11-27, simulated data):
+  - CSV / pasted-cells import with preview, duplicate checks and per-row reasons
+  - Firm-wide colour labels with a case-list filter; team and private notes
+  - Optional TOTP two-step verification, enforced by a restrictive policy on every table
 
 ## Phase A: controlled technical demo (about 1–2 weeks, internal)
 

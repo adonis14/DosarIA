@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Tags, Upload } from "lucide-react";
+import { CaseLabelBadge } from "@/components/app/case-label-badge";
 import { CourtText } from "@/components/app/court-text";
 import { EmptyState, PageHeader } from "@/components/app/page-header";
 import { CaseStatusBadge, CheckOutcomeBadge } from "@/components/app/status-badges";
@@ -15,6 +16,7 @@ import { formatDateTime } from "@/lib/format";
 import { caseFiltersSchema } from "@/lib/validation";
 import { requireOrgPageContext } from "@/server/context";
 import { getAuthorizedCases } from "@/server/dal/cases";
+import { getLabelIdsForCases, listLabels } from "@/server/dal/labels";
 import { listMembers } from "@/server/dal/organizations";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -30,15 +32,22 @@ export default async function CasesPage({ searchParams }: PageProps<"/cases">) {
     status: typeof sp.status === "string" ? sp.status : undefined,
     matterType: typeof sp.matterType === "string" ? sp.matterType : undefined,
     assignee: typeof sp.assignee === "string" ? sp.assignee : undefined,
+    label: typeof sp.label === "string" ? sp.label : undefined,
   };
   const parsed = caseFiltersSchema.safeParse(raw);
   const filters = parsed.success ? parsed.data : caseFiltersSchema.parse({});
 
   const isAdmin = ctx.activeOrg.role === "admin";
-  const [cases, members] = await Promise.all([
+  const [cases, members, orgLabels] = await Promise.all([
     getAuthorizedCases(ctx, filters),
     listMembers(ctx, ctx.activeOrg.organizationId),
+    listLabels(ctx, ctx.activeOrg.organizationId),
   ]);
+  const labelMap = await getLabelIdsForCases(
+    ctx,
+    cases.map((c) => c.id),
+  );
+  const labelById = new Map(orgLabels.map((l) => [l.id, l]));
   const nameOf = new Map(members.map((m) => [m.user_id, m.profiles?.full_name || m.profiles?.email || "—"]));
   const lawyers = members.filter((m) => m.status === "active" && m.role !== "assistant");
   const canCreate = ctx.activeOrg.role !== "assistant";
@@ -49,14 +58,30 @@ export default async function CasesPage({ searchParams }: PageProps<"/cases">) {
         title={t.cases.title}
         description={isAdmin ? t.cases.descriptionAdmin : t.cases.descriptionLawyer}
         actions={
-          canCreate && (
-            <Button asChild>
-              <Link href="/cases/new">
-                <Plus aria-hidden />
-                {t.cases.add}
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="ghost">
+              <Link href="/cases/labels">
+                <Tags aria-hidden />
+                {t.caseLabels.manage}
               </Link>
             </Button>
-          )
+            {canCreate && (
+              <Button asChild variant="outline">
+                <Link href="/cases/import">
+                  <Upload aria-hidden />
+                  {t.caseImport.open}
+                </Link>
+              </Button>
+            )}
+            {canCreate && (
+              <Button asChild>
+                <Link href="/cases/new">
+                  <Plus aria-hidden />
+                  {t.cases.add}
+                </Link>
+              </Button>
+            )}
+          </div>
         }
       />
 
@@ -110,6 +135,21 @@ export default async function CasesPage({ searchParams }: PageProps<"/cases">) {
             </NativeSelect>
           </div>
         )}
+        {orgLabels.length > 0 && (
+          <div className="grid gap-1">
+            <label htmlFor="label" className="text-xs text-muted-foreground">
+              {t.caseLabels.filterLabel}
+            </label>
+            <NativeSelect id="label" name="label" defaultValue={filters.label}>
+              <NativeSelectOption value="all">{t.common.all}</NativeSelectOption>
+              {orgLabels.map((l) => (
+                <NativeSelectOption key={l.id} value={l.id}>
+                  {l.name}
+                </NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </div>
+        )}
         <Button type="submit" variant="outline">
           {t.cases.filter}
         </Button>
@@ -150,6 +190,14 @@ export default async function CasesPage({ searchParams }: PageProps<"/cases">) {
                     <span className="block truncate text-xs text-muted-foreground">
                       <CourtText value={c.court_name} kind="court" /> · {label(t.labels.matterType, c.matter_type)}
                     </span>
+                    {(labelMap.get(c.id)?.length ?? 0) > 0 && (
+                      <span className="mt-1 flex flex-wrap gap-1">
+                        {(labelMap.get(c.id) ?? []).map((id) => {
+                          const l = labelById.get(id);
+                          return l ? <CaseLabelBadge key={id} name={l.name} color={l.color} /> : null;
+                        })}
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="text-sm">
                     {c.assigned_user_id ? (nameOf.get(c.assigned_user_id) ?? "—") : t.common.unassigned}

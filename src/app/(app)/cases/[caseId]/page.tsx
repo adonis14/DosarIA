@@ -8,6 +8,9 @@ import { followCaseAction } from "@/app/actions/notifications";
 import { createReminderAction, deleteReminderAction, reminderStatusAction } from "@/app/actions/reminders";
 import { recordCommunicationAction, rulingFollowupAction } from "@/app/actions/rulings";
 import { ActionForm, FieldError, SubmitButton } from "@/components/app/action-form";
+import { CaseLabelBadge } from "@/components/app/case-label-badge";
+import { CaseLabelsCard } from "@/components/app/case-labels-card";
+import { CaseNotesCard } from "@/components/app/case-notes-card";
 import { CopyableDraft } from "@/components/app/copyable-draft";
 import { CourtText } from "@/components/app/court-text";
 import { EmptyState } from "@/components/app/page-header";
@@ -35,6 +38,8 @@ import { bucharestToday } from "@/lib/validation";
 import { isAdminOf, requireOrgPageContext, roleIn } from "@/server/context";
 import { canEditCase, getAuthorizedCase } from "@/server/dal/cases";
 import { getAuthorizedCaseEvents, getCaseCheckSchedule, getCaseMonitoringRuns, type CheckScheduleRow } from "@/server/dal/events";
+import { canCreateLabels, getLabelIdsForCases, listLabels } from "@/server/dal/labels";
+import { listCaseNotes } from "@/server/dal/notes";
 import { getCaseAlertStatus } from "@/server/dal/notifications";
 import { listMembers } from "@/server/dal/organizations";
 import { getCaseReminders, type ReminderRow } from "@/server/dal/reminders";
@@ -52,7 +57,7 @@ export default async function CaseDetailPage({ params }: PageProps<"/cases/[case
   // Same response for "does not exist" and "not yours".
   if (!c) notFound();
 
-  const [events, runs, schedule, reminders, members, alerts, followups] = await Promise.all([
+  const [events, runs, schedule, reminders, members, alerts, followups, orgLabels, labelMap, notes] = await Promise.all([
     getAuthorizedCaseEvents(ctx, c.id),
     getCaseMonitoringRuns(ctx, c.id),
     getCaseCheckSchedule(ctx, c.id),
@@ -60,7 +65,11 @@ export default async function CaseDetailPage({ params }: PageProps<"/cases/[case
     listMembers(ctx, c.organization_id),
     getCaseAlertStatus(ctx, c),
     getCaseRulingFollowups(ctx, c.id),
+    listLabels(ctx, c.organization_id),
+    getLabelIdsForCases(ctx, [c.id]),
+    listCaseNotes(ctx, c.id),
   ]);
+  const assignedLabels = labelMap.get(c.id) ?? [];
 
   const role = roleIn(ctx, c.organization_id);
   const canEdit = canEditCase(ctx, c);
@@ -81,6 +90,11 @@ export default async function CaseDetailPage({ params }: PageProps<"/cases/[case
           <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <CourtText value={c.court_name} kind="court" /> · {label(t.labels.matterType, c.matter_type)}{" "}
             <CaseStatusBadge status={c.status} />
+            {orgLabels
+              .filter((l) => assignedLabels.includes(l.id))
+              .map((l) => (
+                <CaseLabelBadge key={l.id} name={l.name} color={l.color} />
+              ))}
           </p>
         </div>
         {canEdit && (
@@ -249,6 +263,21 @@ export default async function CaseDetailPage({ params }: PageProps<"/cases/[case
             )}
           </CardContent>
         </Card>
+      </div>
+
+      {/* Internal notes and labels */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <CaseNotesCard t={t} locale={locale} caseId={c.id} notes={notes} currentUserId={ctx.user.id} nameOf={nameOf} />
+        </div>
+        <CaseLabelsCard
+          t={t}
+          caseId={c.id}
+          labels={orgLabels}
+          assigned={assignedLabels}
+          canEdit={canEdit}
+          canCreate={canCreateLabels(ctx, c.organization_id)}
+        />
       </div>
 
       {/* Rulings: communication date → the lawyer's own deadline */}

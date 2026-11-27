@@ -81,6 +81,22 @@ ownership audit query.
     and links are built from it.
 - **Client note**: a template draft rendered on the case page. Nothing is sent
   to clients and the draft is not stored.
+- **Two-step verification (TOTP)**: optional per user. Once a user has a
+  verified authenticator, every table's restrictive `mfa_required` policy
+  refuses a password-only (AAL1) session, including direct API calls, and the
+  app sends it to `/auth/mfa`. Wrong codes are rate-limited per account and
+  per IP and recorded in the audit log (`security.mfa_failed`). Removing a
+  device requires a fresh code. The TOTP secret and QR code are shown once
+  during setup and never logged.
+- **Case notes**: private notes are hidden from colleagues by RLS, admins
+  included. Note text is never written to the audit log (only the note id and
+  its visibility), to notifications, the calendar feed, server logs or an AI
+  prompt.
+- **Bulk import**: the browser reads the CSV as text; no file is uploaded or
+  stored. The server re-parses and re-validates the text on preview and again
+  on import (max 200,000 characters, 500 rows, rate-limited), and inserts
+  through `public.import_cases`, which runs as the caller, so RLS and the
+  guard triggers apply to every row.
 - **CSRF**: mutations are Server Actions only (POST). Next.js checks
   `Origin` against `Host`, and `SameSite=Lax` cookies add a second layer. The
   only GET route handler (`/auth/confirm`) consumes single-use tokens and
@@ -250,8 +266,13 @@ never shown to that tenant.
 - **Organization creation** is open to any verified account (max 3 per
   account). For the pilot, consider disabling public sign-up and provisioning
   firms manually.
-- **No MFA/SSO yet.** Strongly recommended before handling real client data.
-  Supabase supports TOTP MFA; enforce it for admins as a minimum.
+- **Two-step verification is opt-in.** There is no firm-wide requirement
+  yet (an admin cannot force it on members) and no SSO. Recovery codes are not
+  available, so a user who loses every device must be reset by an operator
+  (delete the factor in the Supabase dashboard) after verifying their identity
+  out of band. A hosted Supabase project must have TOTP enabled.
+- **Private notes** are private from colleagues in the app only. They are part
+  of the firm's data export and visible to whoever operates the database.
 - **Session revocation on suspension**: suspended or removed members lose data
   access immediately (RLS checks the *current* membership), but their auth
   session stays valid until they sign out or it expires.
@@ -303,7 +324,7 @@ never shown to that tenant.
 - [ ] DPA signed with the pilot firm; sub-processor list confirmed in writing (EU locations)
 - [ ] Legal review of professional-secrecy obligations, retention periods and terms of service
 - [ ] Independent security review / penetration test of the deployed system
-- [ ] MFA enforced (at least for admins); public sign-up disabled or restricted
+- [ ] MFA required firm-wide (available per user since 2026-11-27; a firm-wide setting is still to build); public sign-up disabled or restricted
 - [ ] Shared-store rate limiting; production SMTP; CAPTCHA on sign-up
 - [ ] Backups + PITR enabled and a restore tested
 - [ ] Incident response and breach-notification procedure (72 h to the ANSPDCP when required)

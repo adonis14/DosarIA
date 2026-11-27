@@ -105,9 +105,34 @@ export const caseFiltersSchema = z
     status: z.enum([...CASE_STATUSES, "all"]).optional().default("active"),
     matterType: z.enum([...MATTER_TYPES, "all"]).optional().default("all"),
     assignee: z.union([uuid, z.enum(["all", "me", "unassigned"])]).optional().default("all"),
+    label: z.union([uuid, z.literal("all")]).optional().default("all"),
   })
   .strict();
 export type CaseFilters = z.infer<typeof caseFiltersSchema>;
+
+// ---------- bulk import ----------
+/** The pasted / file text is length-limited again by the parser (IMPORT_MAX_CHARS). */
+export const caseImportSchema = z
+  .object({ data: z.string().max(200_000, msg("importTooLarge")), defaultAssigneeId: optionalUuid })
+  .strict();
+
+// ---------- labels ----------
+export const LABEL_COLORS = ["gray", "red", "orange", "yellow", "green", "blue", "purple", "pink"] as const;
+export const labelSchema = z.object({ name: trimmed(1, 40, "labelName"), color: z.enum(LABEL_COLORS) }).strict();
+export const caseLabelsSchema = z.object({ labelIds: z.array(uuid).max(50) }).strict();
+
+// ---------- notes ----------
+export const NOTE_VISIBILITIES = ["team", "private"] as const;
+/** The "only me" checkbox is absent from the form when unticked. */
+export const caseNoteSchema = z
+  .object({ body: trimmed(1, 5000, "noteBody"), private: z.literal("on").optional() })
+  .strict()
+  .transform((v) => ({ body: v.body, visibility: v.private === "on" ? ("private" as const) : ("team" as const) }));
+
+// ---------- two-step verification ----------
+const mfaCode = z.string().trim().regex(/^[0-9]{6}$/, msg("mfaCode"));
+export const mfaCodeSchema = z.object({ code: mfaCode }).strict();
+export const mfaFactorCodeSchema = z.object({ factorId: uuid, code: mfaCode }).strict();
 
 // ---------- reminders ----------
 export const isoDate = z

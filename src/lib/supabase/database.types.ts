@@ -117,6 +117,90 @@ isOneToOne: false
       referencedColumns: ["organization_id","user_id"]
     }
                   ]
+                },"case_label_assignments": {
+                  Row: {
+                    "case_id": string,"created_at": string,"created_by": string | null,"label_id": string,"organization_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "case_id": string,"created_at"?: string,"created_by"?: string | null,"label_id": string,"organization_id": string
+                  }
+                  Update: {
+                    "case_id"?: string,"created_at"?: string,"created_by"?: string | null,"label_id"?: string,"organization_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "case_label_assignments_case_fk"
+      columns: ["organization_id","case_id"]
+isOneToOne: false
+      referencedRelation: "cases"
+      referencedColumns: ["organization_id","id"]
+    },{
+      foreignKeyName: "case_label_assignments_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "case_label_assignments_label_fk"
+      columns: ["organization_id","label_id"]
+isOneToOne: false
+      referencedRelation: "case_labels"
+      referencedColumns: ["organization_id","id"]
+    }
+                  ]
+                },"case_labels": {
+                  Row: {
+                    "color": Database["public"]['Enums']["label_color"],"created_at": string,"created_by": string | null,"id": string,"name": string,"organization_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "color"?: Database["public"]['Enums']["label_color"],"created_at"?: string,"created_by"?: string | null,"id"?: string,"name": string,"organization_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "color"?: Database["public"]['Enums']["label_color"],"created_at"?: string,"created_by"?: string | null,"id"?: string,"name"?: string,"organization_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "case_labels_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "case_labels_organization_id_fkey"
+      columns: ["organization_id"]
+isOneToOne: false
+      referencedRelation: "organizations"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"case_notes": {
+                  Row: {
+                    "author_id": string,"body": string,"case_id": string,"created_at": string,"id": string,"organization_id": string,"updated_at": string,"visibility": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "author_id"?: string,"body": string,"case_id": string,"created_at"?: string,"id"?: string,"organization_id": string,"updated_at"?: string,"visibility"?: string
+                  }
+                  Update: {
+                    "author_id"?: string,"body"?: string,"case_id"?: string,"created_at"?: string,"id"?: string,"organization_id"?: string,"updated_at"?: string,"visibility"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "case_notes_author_member_fk"
+      columns: ["organization_id","author_id"]
+isOneToOne: false
+      referencedRelation: "organization_memberships"
+      referencedColumns: ["organization_id","user_id"]
+    },{
+      foreignKeyName: "case_notes_case_fk"
+      columns: ["organization_id","case_id"]
+isOneToOne: false
+      referencedRelation: "cases"
+      referencedColumns: ["organization_id","id"]
+    }
+                  ]
                 },"case_snapshots": {
                   Row: {
                     "case_id": string,"completeness": string,"content_hash": string,"created_at": string,"data": NonNullable<Json>,"fetched_at": string,"id": string,"organization_id": string,"provider": string,"source_reference": string | null
@@ -461,6 +545,9 @@ isOneToOne: false
 "create_organization":
 { Args: { "p_name": string }; Returns: string
                            },
+"import_cases":
+{ Args: { "p_organization_id": string,"p_rows": Json }; Returns: Json
+                           },
 "my_open_ruling_followups":
 { Args: { "p_organization_id": string }; Returns: {
               "case_id": string,"case_title": string,"court_case_number": string,"created_at": string,"id": string,"ruling_date": string
@@ -479,10 +566,13 @@ isOneToOne: false
                            },
 "replace_calendar_feed":
 { Args: { "p_organization_id": string,"p_token_hash": string }; Returns: string
+                           },
+"security_self_check":
+{ Args: Record<PropertyKey, never>; Returns: Json
                            }
           }
           Enums: {
-            "actor_type": "user"|"system","case_status": "active"|"closed"|"archived","check_outcome": "never_checked"|"changes_detected"|"no_changes"|"failed"|"incomplete"|"source_unavailable","event_type": "monitoring_started"|"hearing_scheduled"|"hearing_rescheduled"|"hearing_postponed"|"decision_issued"|"status_changed"|"stage_changed","matter_type": "civil"|"commercial"|"labor"|"administrative"|"family"|"enforcement"|"insolvency"|"criminal"|"other","membership_role": "admin"|"lawyer"|"assistant","membership_status": "active"|"suspended"|"removed","reminder_origin": "manual"|"suggested","reminder_status": "proposed"|"confirmed"|"completed"|"needs_review"
+            "actor_type": "user"|"system","case_status": "active"|"closed"|"archived","check_outcome": "never_checked"|"changes_detected"|"no_changes"|"failed"|"incomplete"|"source_unavailable","event_type": "monitoring_started"|"hearing_scheduled"|"hearing_rescheduled"|"hearing_postponed"|"decision_issued"|"status_changed"|"stage_changed","label_color": "gray"|"red"|"orange"|"yellow"|"green"|"blue"|"purple"|"pink","matter_type": "civil"|"commercial"|"labor"|"administrative"|"family"|"enforcement"|"insolvency"|"criminal"|"other","membership_role": "admin"|"lawyer"|"assistant","membership_status": "active"|"suspended"|"removed","reminder_origin": "manual"|"suggested","reminder_status": "proposed"|"confirmed"|"completed"|"needs_review"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -598,7 +688,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "actor_type": ["user", "system"],"case_status": ["active", "closed", "archived"],"check_outcome": ["never_checked", "changes_detected", "no_changes", "failed", "incomplete", "source_unavailable"],"event_type": ["monitoring_started", "hearing_scheduled", "hearing_rescheduled", "hearing_postponed", "decision_issued", "status_changed", "stage_changed"],"matter_type": ["civil", "commercial", "labor", "administrative", "family", "enforcement", "insolvency", "criminal", "other"],"membership_role": ["admin", "lawyer", "assistant"],"membership_status": ["active", "suspended", "removed"],"reminder_origin": ["manual", "suggested"],"reminder_status": ["proposed", "confirmed", "completed", "needs_review"]
+            "actor_type": ["user", "system"],"case_status": ["active", "closed", "archived"],"check_outcome": ["never_checked", "changes_detected", "no_changes", "failed", "incomplete", "source_unavailable"],"event_type": ["monitoring_started", "hearing_scheduled", "hearing_rescheduled", "hearing_postponed", "decision_issued", "status_changed", "stage_changed"],"label_color": ["gray", "red", "orange", "yellow", "green", "blue", "purple", "pink"],"matter_type": ["civil", "commercial", "labor", "administrative", "family", "enforcement", "insolvency", "criminal", "other"],"membership_role": ["admin", "lawyer", "assistant"],"membership_status": ["active", "suspended", "removed"],"reminder_origin": ["manual", "suggested"],"reminder_status": ["proposed", "confirmed", "completed", "needs_review"]
           }
         }
 } as const
